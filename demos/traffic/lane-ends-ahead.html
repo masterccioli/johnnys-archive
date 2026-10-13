@@ -1,0 +1,435 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Lane Ends Ahead</title><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=Overpass+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one narrow reading column; a highway-sign header, then three stacked road panels you compare top to bottom. */
+:root{
+  --bg:#E7EBE6; --panel:#F5F7F3; --ink:#16211B; --muted:#55625A; --rule:#C9D1C8;
+  --sign:#0F5E3C; --sign-ink:#FFFFFF;
+  --zone:#D9581A; --you:#EDB60C;
+  --asphalt:#3A3F42; --asphalt-closed:#2C3033; --stripe:#F2F2EC; --shoulder:#BCC6BA; --car-open:#AFC2CF; --good:#13804F; --muted2:#55625A;
+  --f-display:"Overpass", "Highway Gothic", "Arial Narrow", system-ui, sans-serif;
+  --f-body:"Overpass", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"Overpass Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1411; --panel:#161D19; --ink:#E4EAE5; --muted:#9AA79F; --rule:#28322C;
+    --sign:#17744C; --sign-ink:#FFFFFF;
+    --zone:#F07633; --you:#F5C431;
+    --asphalt:#2B2F32; --asphalt-closed:#202326; --stripe:#D8D8D0; --shoulder:#1D2621; --car-open:#8EA3B2; --good:#3FBF7F;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1411; --panel:#161D19; --ink:#E4EAE5; --muted:#9AA79F; --rule:#28322C;
+  --sign:#17744C; --sign-ink:#FFFFFF;
+  --zone:#F07633; --you:#F5C431;
+  --asphalt:#2B2F32; --asphalt-closed:#202326; --stripe:#D8D8D0; --shoulder:#1D2621; --car-open:#8EA3B2; --good:#3FBF7F;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;padding-inline:16px;padding-block:28px 56px}
+.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+.sign{background:var(--sign);color:var(--sign-ink);border-radius:14px;padding:6px}
+.sign-inner{border:3px solid var(--sign-ink);border-radius:10px;padding:18px 22px 16px;display:flex;flex-direction:column;gap:4px}
+.sign .eyebrow{font-family:var(--f-display);font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+.sign h1{margin:0;font-family:var(--f-display);font-weight:800;font-size:clamp(34px,6vw,56px);line-height:1;letter-spacing:-.01em;text-wrap:balance}
+.sign p{margin:6px 0 0;font-size:16px;max-width:60ch;opacity:.92}
+.intro{max-width:65ch;margin:0;color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:14px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px}
+.chip{width:22px;height:11px;border-radius:3px;display:inline-block}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg button,.btn{font:600 14px var(--f-body);color:var(--ink);background:var(--panel);border:0;padding:6px 12px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.btn{border:1px solid var(--rule);border-radius:8px}
+button:focus-visible{outline:2px solid var(--zone);outline-offset:2px}
+.scenario{display:flex;flex-direction:column;gap:12px;padding-block:18px 4px;border-top:1px solid var(--rule)}
+.tag{align-self:flex-start;font-family:var(--f-display);font-weight:800;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding:4px 9px 2px;border-radius:5px;color:var(--sign-ink);background:var(--sign)}
+.scenario.real .tag{background:var(--zone)}
+.scenario.mine .tag{background:var(--you);color:#1B1A10}
+.scenario h2{margin:0;font-family:var(--f-display);font-weight:800;font-size:clamp(20px,3.2vw,26px);line-height:1.15;text-wrap:balance}
+.scenario p{margin:0;max-width:65ch;color:var(--muted)}
+.road{width:100%;height:110px;display:block;border-radius:8px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:9px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .k{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font-family:var(--f-mono);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .u{font-size:13px;color:var(--muted)}
+.notes{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--rule);padding-top:22px}
+.notes h2{margin:0;font-family:var(--f-display);font-weight:800;font-size:22px}
+.notes p{margin:0;max-width:65ch}
+.fine{font-size:13px;color:var(--muted)}
+.board{display:flex;flex-direction:column;gap:14px;background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:18px 18px 16px}
+.board h2{margin:0;font-family:var(--f-display);font-weight:800;font-size:22px;line-height:1.2}
+.board .sub{margin:0;font-size:14px;color:var(--muted);max-width:65ch}
+.row{display:grid;grid-template-columns:110px minmax(0,1fr) 170px;gap:6px 16px;align-items:center;padding-top:12px;border-top:1px solid var(--rule)}
+.row .name{font-family:var(--f-display);font-weight:800;font-size:15px;line-height:1.15}
+.bars{display:flex;flex-direction:column;gap:5px;min-width:0}
+.bar{display:flex;align-items:center;gap:8px;min-width:0}
+.bar i{display:block;height:14px;border-radius:3px;transition:width .6s ease;min-width:2px}
+.bar b{font-family:var(--f-mono);font-weight:700;font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bar.o i{background:var(--car-open)} .bar.z i{background:var(--zone)}
+.verdict{font-family:var(--f-display);font-weight:800;font-size:16px;line-height:1.2}
+.verdict small{display:block;font-family:var(--f-body);font-weight:400;font-size:13px;color:var(--muted);margin-top:2px}
+.verdict.bad{color:var(--zone)} .verdict.good{color:var(--good)}
+.stat.hi{border-color:var(--zone);box-shadow:inset 0 0 0 1px var(--zone)}
+.stat.ok{border-color:var(--good);box-shadow:inset 0 0 0 1px var(--good)}
+@media (max-width:560px){.row{grid-template-columns:1fr}.row .verdict{order:3}}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+.plot-cap{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.scatter{width:100%;height:230px;display:block;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+</style>
+</head><body>
+
+<!--
+DRIVER PARAMETERIZATION (not shown in the interface; edit pops below and republish)
+Each driver is a vector drawn around a type's means (sd in brackets):
+  base      merge hazard per second once the closure is noticed
+  distSens  extra merge hazard at the cones (1/s), decaying upstream as exp(-d/dScale)
+  dScale    metres over which that proximity hazard fades
+  queueSens extra hazard per slow car queued ahead; a merge triggered this way is a give-up (driver drops back to let a gap open)
+  zip       0 = hold position beside the car next to you in the open lane, 1 = drive as fast as the lane allows
+  gapAccept multiplier on the gap needed to merge (1 = normal, lower squeezes in)
+  yield     probability of opening a gap for someone signalling in
+  horizon   metres before the cones at which the closure is noticed
+  pStay     probability of still being in the closing lane on entering this stretch (the jam starts further back)
+  laneSense probability of picking the shorter lane on entry instead of going by pStay
+  T, s0     IDM headway (s) and standstill gap (m)
+Road physics shared by all drivers: free speed 15 m/s, crawl past the cones 2.2 m/s (cars that merge faster keep their speed), arrivals 1.15/s (above capacity), entry queue capped at 3 per lane.
+"Your way" = the real-world mixture plus one pace holder (you) on the road at a time: when the current you is within 100 m of the cones, the next closing-lane arrival becomes you (SINGLE / singleLead in the script).
+Driver types and road mixtures: see LanePops in the script.
+Noted for later, not implemented: social-norm sensitivity, explicit give-up/re-engage thresholds, pace-matching as a separate toggle (here it is zip near 0).
+-->
+<div class="wrap">
+  <header class="sign">
+    <div class="sign-inner">
+      <span class="eyebrow">Right lane closed ½ mile</span>
+      <h1>Lane Ends Ahead</h1>
+      <p>Same road, same bottleneck, same traffic. Only the drivers change.</p>
+    </div>
+  </header>
+
+  <p class="intro">Each strip is a two-lane road where the bottom lane ends at the cones. Grey vehicles are in the open lane. Orange ones stayed in the closing lane. In the last strip, the yellow car is you. Cars, pickups, box trucks and semis are drawn to scale.</p>
+
+  <div class="legend" aria-label="Legend">
+    <span><i class="chip" style="background:var(--car-open)"></i>Open lane / merged early</span>
+    <span><i class="chip" style="background:var(--zone)"></i>Stayed in the closing lane</span>
+    <span><i class="chip" style="background:var(--you)"></i>You, holding pace</span>
+  </div>
+
+  <div class="controls">
+    <span>Speed</span>
+    <div class="seg" role="group" aria-label="Simulation speed">
+      <button id="sp2" data-sp="2" aria-pressed="false">2×</button>
+      <button id="sp4" data-sp="4" aria-pressed="true">4×</button>
+      <button id="sp8" data-sp="8" aria-pressed="false">8×</button>
+    </div>
+    <button class="btn" id="restart">Restart</button>
+  </div>
+
+
+  <section class="board" aria-live="off">
+    <h2>Who reaches the cones first?</h2>
+    <p class="sub">Average wait from joining the back of the line to reaching the cones, including the backup you can't see. A line cutter is anyone who came down the closing lane and merged within the strip; anyone who got over before the strip, or was in the open lane to begin with, counts as an early merger. Traffic is heavy and steady, the same on all three roads, so compare the two bars within each road rather than across roads.</p>
+    <div class="row" data-row="ideal"><span class="name">The ideal</span><div class="bars"><div class="bar o"><i></i><b>—</b></div><div class="bar z"><i></i><b>—</b></div></div><div class="verdict"></div></div>
+    <div class="row" data-row="real"><span class="name">The real world</span><div class="bars"><div class="bar o"><i></i><b>—</b></div><div class="bar z"><i></i><b>—</b></div></div><div class="verdict"></div></div>
+    <div class="row" data-row="mine"><span class="name">Your way</span><div class="bars"><div class="bar o"><i></i><b>—</b></div><div class="bar z"><i></i><b>—</b></div></div><div class="verdict"></div></div>
+  </section>
+
+  <section class="scenario ideal" data-kind="ideal">
+    <span class="tag">The ideal</span>
+    <h2>Everyone uses both lanes and takes turns at the cones</h2>
+    <p>Drivers pick whichever lane is shorter. Nobody merges early. At the cones it goes one from each side. Both lanes crawl at the same speed, and nobody gets ahead of anyone.</p>
+    <canvas class="road" aria-label="Simulation: ideal zipper merge"></canvas>
+    <div class="stats"></div>
+    <p class="plot-cap">Each dot is one driver reaching the cones: how many cars they passed, and how long it took.</p>
+    <canvas class="scatter" aria-label="Scatter plot of cars passed versus time to reach the cones"></canvas>
+  </section>
+
+  <section class="scenario real" data-kind="real">
+    <span class="tag">The real world</span>
+    <h2>Some people merge early, and plenty drive to the front</h2>
+    <p>The open lane is packed and never really opens up. It's stop-and-go at best. The closing lane has room to move, so the drivers who stay in it floor it, then dive into a gap right near the front or ride all the way up to the cones. Every one of them lands ahead of people who were in front of them, and every cut-in stalls the open lane again. Closing-lane drivers keep reading the road ahead: boxed in behind a slow car, they give up, turn grey and look for a way into the open lane. If the road ahead clears before they find one, they turn orange again and go for the front.</p>
+    <canvas class="road" aria-label="Simulation: real-world early merging with a few late mergers"></canvas>
+    <div class="stats"></div>
+    <p class="plot-cap">Each dot is one driver reaching the cones: how many cars they passed, and how long it took.</p>
+    <canvas class="scatter" aria-label="Scatter plot of cars passed versus time to reach the cones"></canvas>
+  </section>
+
+  <section class="scenario mine" data-kind="mine">
+    <span class="tag">Your way</span>
+    <h2>Someone in the closing lane refuses to go faster than the open lane</h2>
+    <p>Same traffic as the real world. The difference is you: one yellow car in the closing lane that holds pace with the open lane beside it. Everyone who comes up behind you is stuck at that pace. A handful pile up behind you, tailgate and honk. The closer they get to the cones, the more likely each one is to give up and squeeze into the open lane, and anyone stuck at the back of a long pile gets over sooner. The closing lane ends up moving at the same speed as the open one.</p>
+    <canvas class="road" aria-label="Simulation: a pace-matching car enforcing the zipper"></canvas>
+    <div class="stats"></div>
+    <p class="plot-cap">Each dot is one driver reaching the cones: how many cars they passed, and how long it took.</p>
+    <canvas class="scatter" aria-label="Scatter plot of cars passed versus time to reach the cones"></canvas>
+  </section>
+
+  <section class="notes">
+    <h2>What the strips show</h2>
+    <p>The zipper is only fair when both lanes move at the same speed. Then using the closing lane to the end just means the line is two cars wide and half as long, and everyone gets through in the order they showed up.</p>
+    <p>In the real world the lanes don't match. The closing lane is fast because it's empty, and it's empty because most people merged early. So "merge at the end" turns into passing, and the people who merged early pay for it.</p>
+    <p>Your way puts the ideal back by force. It works on everyone stuck behind you, but the cost lands on you: the tailgating, the honking, and the effort of holding pace for half a mile. In fairness to the orange cars, some states, Minnesota among them, actively tell drivers to use both lanes and zipper at the end, so some of them think they're doing the right thing. The trouble is that the advice assumes everybody does it.</p>
+    <p class="fine">Toy model, not a traffic study. Each vehicle's acceleration depends on the open road in front of it, so a car in the empty closing lane takes off while one in the packed open lane barely moves. Trucks accelerate slower and drivers leave different-sized gaps. In the real world, closing-lane drivers give up and merge when they're boxed in, and go for the front again when the lane clears. In your way, drivers stuck behind you are more likely to get over the closer they are to the cones or the longer the pile ahead of them. Waits start when a driver joins the back of the line, which can be well before the strip, and anyone who came down the closing lane and merged within the strip counts as a line cutter. "Places jumped" counts how many cars joined the line before a driver but reached the cones after them, minus the reverse. Every driver here is the same car-following model with a handful of personal settings (how early they merge, how fast they run beside the open lane, what gap they'll take, whether they let people in); the three roads differ only in the mix of drivers.</p>
+  </section>
+</div>
+
+
+
+<script>
+// Lane-closure sim v2: all behavior emerges from a per-driver parameter vector.
+// Works in Node (module.exports) and browser (window.LaneSim).
+(function(root){
+const L=170, M=135, U=120, DT=0.05, WIN=300, CUT=3, B=2; let VZONE=4, V0=15;
+const VEH={car:{len:4.6,w:1.85,a:1.5},pickup:{len:5.8,w:2.0,a:1.4},box:{len:8.5,w:2.4,a:1.0},semi:{len:18,w:2.55,a:0.7}};
+function pickVeh(r){return r<0.64?'car':r<0.82?'pickup':r<0.92?'box':'semi';}
+function idm(v,gap,dv,a,T,s0){const s=s0+Math.max(0,v*T+v*dv/(2*Math.sqrt(a*B)));const g=Math.max(gap,0.1);return a*(1-Math.pow(v/V0,4)-(s/g)*(s/g));}
+function rng(seed){let s=seed>>>0;return()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+// ---- Driver parameter vector -------------------------------------------
+// base     : baseline merge hazard (1/s) once the closure is noticed
+// distSens : extra merge hazard at the cones (1/s), decaying upstream as exp(-dist/dScale)
+// dScale   : metres over which that proximity hazard falls off (small = waits until the last moment)
+// queueSens: extra hazard per slow car queued ahead in own lane (1/s per car)
+// zip      : 0 = hold pace with the open lane, 1 = drive as fast as the road allows
+// gapAccept: multiplier on the gap a driver needs before merging (1 = normal, <1 = squeezes in)
+// yield    : probability of opening a gap for someone signalling in
+// horizon  : metres before the cones at which the driver notices the closure
+// pStay    : probability of choosing the closing lane on arrival (when not choosing by queue length)
+// laneSense: probability of choosing the shorter lane instead of going by pStay
+// T, s0    : IDM headway (s) and standstill gap (m)
+const PKEYS=['base','distSens','dScale','queueSens','zip','gapAccept','yield','horizon','pStay','laneSense','T','s0'];
+
+// An archetype is {name, weight, params:{k:[mean,sd]}}; a population is a list of archetypes.
+function drawDriver(pop,r){
+  let u=r()*pop.reduce((s,a)=>s+a.weight,0), arch=pop[pop.length-1];
+  for(const a of pop){ if(u<a.weight){arch=a;break;} u-=a.weight; }
+  const d={arch:arch.name};
+  for(const k of PKEYS){const [m,sd]=arch.params[k]; // truncated normal via clamp
+    const z=Math.sqrt(-2*Math.log(1-r()))*Math.cos(2*Math.PI*r()); d[k]=m+sd*z;}
+  d.base=Math.max(0,d.base);d.distSens=Math.max(0,d.distSens);d.dScale=Math.max(3,d.dScale);d.queueSens=Math.max(0,d.queueSens);
+  d.zip=clamp(d.zip,0,1);d.gapAccept=Math.max(0.3,d.gapAccept);d.yield=clamp(d.yield,0,1);
+  d.horizon=clamp(d.horizon,20,M+U);d.pStay=clamp(d.pStay,0,1);d.laneSense=clamp(d.laneSense,0,1);d.T=Math.max(0.6,d.T);d.s0=Math.max(1,d.s0);
+  return d;
+}
+
+class Sim{
+  constructor(pop,seed,opts){this.pop=pop;this.seed=seed;this.single=(opts&&opts.single)||null;this.singleLead=(opts&&opts.singleLead)||70;this.lambda=(opts&&opts.lambda)||1.15;this.qcap=(opts&&opts.qcap)||8;if(opts&&opts.vzone)VZONE=opts.vzone;if(opts&&opts.v0)V0=opts.v0;this.reset();}
+  reset(){this.r=rng(this.seed);this.t=0;this.cars=[];this.pend=[[],[]];this.nextArr=0;this.id=0;this.seq=0;
+    this.recent={open:[],zip:[]};this.pts=[];this.exited=[];this.cutShare=null;this.tOpen=null;this.tZip=null;this.gainZip=null;this.gainOpen=null;this.v0e=null;this.v1e=null;this.honks=0;this.byArch={};}
+  arrive(){let d=drawDriver(this.pop,this.r),veh=pickVeh(this.r());
+    if(this.single&&!this.cars.some(c=>c.d.arch===this.single.name&&!c.cls&&c.x<M-this.singleLead)&&!this.pend[1].some(q=>q.d.arch===this.single.name)){d=drawDriver([this.single],this.r);veh='car';}
+    let lane;
+    if(this.r()<d.laneSense){const n=l=>this.pend[l].length+this.cars.filter(c=>c.lane===l&&c.x<M-80).length;const df=n(0)-n(1);lane=df===0?(this.r()<d.pStay?1:0):(df>0?1:0);}
+    else lane=(this.r()<d.pStay)?1:0;
+    const q=this.pend[lane];
+    if(q.length<this.qcap) q.push({d,veh,tArr:this.t,seq:++this.seq});}
+  room(lane){let rear=null;for(const c of this.cars) if(c.lane===lane&&(!rear||c.x<rear.x)) rear=c;
+    if(!rear) return {ok:true,v:V0*0.8};const gap=rear.x-rear.len+U;
+    return {ok:gap>2.5,v:gap<60?Math.min(V0*0.8,rear.v+Math.max(0,gap-3)*0.3):V0*0.8};}
+  spawn(){for(const lane of [0,1]){const q=this.pend[lane];if(!q.length)continue;const rm=this.room(lane);
+    if(rm.ok){const p=q.shift();const V=VEH[p.veh];
+      this.cars.push({id:++this.id,seq:p.seq,d:p.d,veh:p.veh,len:V.len,w:V.w,a:V.a,lane,orig:lane,x:-U,y:lane,v:rm.v,acc:0,tIn:p.tArr,done:false,want:false,ghost:null,yielder:null,yd:{},honk:0,merged:false,ref:null,vcap:null,gaveUp:false,cls:null});}}}
+  step(dt){
+    this.t+=dt;
+    while(this.t>=this.nextArr){this.arrive();this.nextArr+=-Math.log(1-this.r())/this.lambda;}
+    this.spawn();
+    const cars=this.cars;
+    const l0=cars.filter(c=>c.lane===0).sort((a,b)=>b.x-a.x);
+    const l1=cars.filter(c=>c.lane===1).sort((a,b)=>b.x-a.x);
+    for(const c of cars){c.ghost=null;c.yielder=null;}
+    // --- merge intention (closing lane) ---
+    for(let i=0;i<l1.length;i++){const c=l1[i],d=c.d;
+      if(c.x>=M-8){c.want=true;continue;}
+      const aware=c.x>M-d.horizon; if(!aware){c.want=false;continue;}
+      const prox=Math.exp(-(M-c.x)/d.dScale);
+      let nq=0; for(let j=i-1;j>=0;j--){const o=l1[j]; if(o.x-o.len-c.x>60) break; if(o.v<5) nq++;}
+      const hq=d.queueSens*nq, hd=d.base+d.distSens*prox;
+      if(!c.want){const u=this.r(); if(u<hq*dt){c.want=true;c.gaveUp=true;} else if(u<(hq+hd)*dt){c.want=true;c.gaveUp=false;}}
+      // intention decays if the lane ahead is open and fast (re-engage)
+      if(c.want&&c.x<M-8&&nq===0&&d.base<0.05&&this.r()<0.5*dt){c.want=false;c.gaveUp=false;}
+    }
+    // --- ask a follower in the open lane to yield ---
+    for(const m of l1){ if(!m.want) continue;
+      let F=null; for(const c of l0){ if(c.x<m.x-m.len-0.5){F=c;break;} }
+      if(!F||m.x-F.x>30+m.len||F.ghost) continue;
+      if(F.yd[m.id]==null) F.yd[m.id]=this.r()<F.d.yield;
+      if(!F.yd[m.id]) continue;
+      F.ghost=m; m.yielder=F;
+    }
+    // --- open lane accel ---
+    for(let i=0;i<l0.length;i++){const c=l0[i],ld=l0[i-1],d=c.d;
+      let a=ld?idm(c.v,ld.x-ld.len-c.x,c.v-ld.v,c.a,d.T,d.s0):idm(c.v,1e4,0,c.a,d.T,d.s0);
+      if(c.ghost){const g=c.ghost,ag=idm(c.v,g.x-g.len-c.x,c.v-g.v,c.a,d.T,d.s0);if(ag>=-2.5)a=Math.min(a,ag);else{g.yielder=null;c.ghost=null;}}
+      if(c.x>=M-1&&c.vcap==null)c.vcap=Math.max(VZONE,c.v);
+      if(c.vcap!=null)a=Math.min(a,1.5*(c.vcap-c.v));
+      c.acc=a;}
+    // --- closing lane accel ---
+    for(let i=0;i<l1.length;i++){const c=l1[i],ld=l1[i-1],d=c.d;
+      let a=idm(c.v,M-c.x,c.v,c.a,d.T,d.s0);
+      if(ld) a=Math.min(a,idm(c.v,ld.x-ld.len-c.x,c.v-ld.v,c.a,d.T,d.s0));
+      // zip: speed cap relative to the adjacent open lane
+      if(c.x>M-d.horizon&&d.zip<1){
+        if(!c.ref||c.ref.lane!==0||c.ref.done||c.ref.x<c.x-15){c.ref=null;let bd=25;for(const o of l0){if(o.x<c.x-8)continue;const dd=Math.abs(o.x-c.x);if(dd<bd){bd=dd;c.ref=o;}}}
+        const ref=c.ref; if(ref){const hold=Math.pow(1-d.zip,4);const vcap=ref.v+d.zip*(V0-ref.v)+hold*clamp(0.4*(ref.x-c.x),-3,3); if(c.v>vcap-1) a=Math.min(a,Math.max(-2.5,1.5*(vcap-c.v)));}}
+      if(c.want){let Ld=null;for(const o of l0){if(o.x>=c.x-1&&(!Ld||o.x<Ld.x))Ld=o;}
+        if(Ld&&Ld.x-Ld.len-c.x<2.5){const tgt=c.gaveUp?Math.max(0,Ld.v-1.5):Math.max(Math.max(0,Ld.v-1.5)+d.zip*4.5,d.zip*8); a=Math.min(a,Math.max(-2.5,2*(tgt-c.v)));}}
+      c.acc=a;}
+    for(const c of cars){c.acc=Math.max(c.acc,-9);c.v=Math.max(0,c.v+c.acc*dt);c.x+=c.v*dt;if(c.lane===1&&c.x>M){c.x=M;c.v=0;}}
+    // --- execute merges (gap acceptance) ---
+    for(const m of l1){ if(!m.want||m.lane!==1) continue;
+      let Ld=null,F=null;for(const c of cars){if(c.lane!==0)continue;if(c.x>=m.x){if(!Ld||c.x<Ld.x)Ld=c;}else{if(!F||c.x>F.x)F=c;}}
+      const gF=Ld?Ld.x-Ld.len-m.x:99, gB=F?m.x-m.len-F.x:99, ga=m.d.gapAccept;
+      const ok=gF>ga*(0.5+Math.max(0,Ld?m.v-Ld.v:0)*0.3) && gB>ga*(0.5+Math.max(0,F?F.v-m.v:0)*0.5);
+      if(ok){m.lane=0;m.merged=true;m.mergeX=m.x;m.cls=m.x<0?'Early merger':(m.d.arch==='Pace holder'||m.d.arch==='Zipper')?m.d.arch:'Line cutter';}
+    }
+    // --- honks: impatient driver stuck behind a pace-holder ---
+    for(let i=1;i<l1.length;i++){const c=l1[i],ld=l1[i-1];
+      if(ld.d.zip<0.25&&c.d.zip>0.6&&ld.x-ld.len-c.x<18&&c.x<M-30&&ld.x>M-ld.d.horizon&&this.r()<0.5*dt){c.honk=0.9;this.honks++;}}
+    for(const c of cars){if(c.honk>0)c.honk-=dt;c.y+=(c.lane-c.y)*Math.min(1,dt*3);}
+    // --- lane speed EMAs ---
+    // traversal speed through the strip, by original lane: x=0 to the cones (open) or to the merge point (closing)
+    for(const c of cars){ if(c.t0==null&&c.x>=0){c.t0=this.t;c.x0=c.x;}
+      if(c.t0!=null&&!c.vDone){const end=c.orig===1?(c.lane===0?c.mergeX:null):(c.x>=M?M:null);
+        if(end!=null&&end-c.x0>5){c.vDone=true;const v=(end-c.x0)/Math.max(0.1,this.t-c.t0);
+          if(c.orig===1){this.v1e=this.v1e==null?v:this.v1e+(v-this.v1e)*0.15;} else {this.v0e=this.v0e==null?v:this.v0e+(v-this.v0e)*0.15;}}}}
+    // --- exits & stats ---
+    for(let i=cars.length-1;i>=0;i--){const c=cars[i];
+      if(!c.done&&c.x>=M-0.5&&c.lane===0){c.done=true;
+        let passedBy=0;for(const s of this.exited) if(s>c.seq) passedBy++;
+        let jumped=0;for(const o of cars) if(!o.done&&o.seq<c.seq) jumped++;
+        for(const q of this.pend) for(const o of q) if(o.seq<c.seq) jumped++;
+        if(!c.cls)c.cls=(c.orig===0&&c.d.arch!=='Zipper')?'Early merger':c.d.arch;
+        const g=jumped-passedBy,T=this.t-c.tIn,cut=c.cls==='Line cutter',R=this.recent;c.gjump=g;
+        (cut?R.zip:R.open).push({t:this.t,T,g});
+        this.pts.push({T,g,cut,t:this.t,arch:c.cls,orig:c.orig});if(this.pts.length>300)this.pts.shift();
+        const ba=this.byArch[c.cls]||(this.byArch[c.cls]={n:0,T:0,g:0,cut:0});ba.n++;ba.T+=T;ba.g+=g;ba.cut+=cut?1:0;
+        for(const kk of ['zip','open']){const a=R[kk];while(a.length&&a[0].t<this.t-WIN)a.shift();}
+        const av=(a,f)=>a.length?a.reduce((x,o)=>x+o[f],0)/a.length:null;
+        this.tZip=av(R.zip,'T');this.gainZip=av(R.zip,'g');this.cutShare=R.zip.length/Math.max(1,R.zip.length+R.open.length);this.tOpen=av(R.open,'T');this.gainOpen=av(R.open,'g');
+        this.exited.push(c.seq);
+        let minAlive=Infinity;for(const o of cars) if(!o.done&&o.seq<minAlive) minAlive=o.seq;
+        for(const q of this.pend) for(const o of q) if(o.seq<minAlive) minAlive=o.seq;
+        this.exited=this.exited.filter(s=>s>=minAlive);}
+      if(c.x-c.len>L+2) cars.splice(i,1);}
+  }
+}
+const API={Sim,PKEYS,L,M,U,DT,CUT,V0,VEH};
+if(typeof module!=='undefined') module.exports=API; else root.LaneSim=API;
+})(typeof window!=='undefined'?window:globalThis);
+
+// Archetypes: {name, weight, params:{key:[mean,sd]}}. Scenarios are mixtures of archetypes.
+const A=(name,weight,p)=>({name,weight,params:{
+  base:p.base||[0,0], distSens:p.distSens||[0,0], dScale:p.dScale||[25,5], queueSens:p.queueSens||[0,0], zip:p.zip||[1,0],
+  gapAccept:p.gapAccept||[1,0.2], yield:p.yield||[0.85,0.1], horizon:p.horizon||[200,40], pStay:p.pStay||[0.5,0], laneSense:p.laneSense||[0.5,0.2],
+  T:p.T||[1.4,0.4], s0:p.s0||[2.5,1]}});
+
+const earlyMerger=A('Early merger',0.60,{base:[0.15,0.08],distSens:[2,0.5],dScale:[80,20],queueSens:[0.1,0.05],zip:[0.9,0.1],gapAccept:[1.1,0.2],yield:[0.95,0.05],horizon:[230,30],pStay:[0,0],laneSense:[0,0]});
+const lineCutter =A('Line cutter', 0.40,{base:[0,0],distSens:[3,0.5],dScale:[25,3],queueSens:[0.05,0.03],zip:[0.8,0.1],gapAccept:[0.5,0.1],yield:[0.6,0.2],horizon:[200,30],pStay:[1,0],laneSense:[0.2,0.1]});
+const blocker    =A('Gatekeeper',  0.15,{base:[0.15,0.08],distSens:[2,0.5],dScale:[80,20],queueSens:[0.1,0.05],zip:[0.9,0.1],gapAccept:[1.1,0.2],yield:[0.05,0.05],horizon:[230,30],pStay:[0,0],laneSense:[0,0]});
+const paceHolder =A('Pace holder', 0.0, {base:[0,0],distSens:[3,0.5],dScale:[4,1],queueSens:[0,0],zip:[0.02,0.02],gapAccept:[1,0.2],yield:[0.95,0.05],horizon:[260,0],pStay:[1,0],laneSense:[0,0]});
+const zipper     =A('Zipper',      1.0, {base:[0,0],distSens:[3,0.3],dScale:[15,2],queueSens:[0,0],zip:[0.05,0.05],gapAccept:[1,0.2],yield:[0.95,0.05],horizon:[230,20],pStay:[0.5,0],laneSense:[1,0]});
+
+const clone=(a,w)=>({...a,weight:w});
+const POPS={
+  ideal:[zipper],
+  real:[earlyMerger,lineCutter],
+  mine:[earlyMerger,lineCutter],   // plus one pace holder (you) on the road at a time: see SINGLE
+};
+const SINGLE={mine:paceHolder};
+const ARCH={earlyMerger,lineCutter,blocker,paceHolder,zipper};
+if(typeof module!=='undefined') module.exports={POPS,A,ARCH,SINGLE}; else window.LanePops={POPS,A,ARCH,SINGLE};
+
+</script>
+<script>
+(()=>{
+const {Sim,L,M,DT}=LaneSim; const {POPS,SINGLE}=LanePops;
+const MPH=2.237, VZONE=2.2, V0=15;
+const COLOR={'Early merger':'--car-open','Line cutter':'--zone','Gatekeeper':'--muted2','Pace holder':'--you','Zipper':'--car-open'};
+const sections=[...document.querySelectorAll('.scenario')];
+const panels=sections.map(sec=>{const kind=sec.dataset.kind;const canvas=sec.querySelector('canvas.road'),stats=sec.querySelector('.stats');
+  const items=[['to','Early mergers: wait','seconds'],['tz','Line cutters: wait','seconds'],['gz','Line cutters','of drivers']];
+  if(kind==='mine')items.push(['hk','Honks at you','so far']);
+  stats.innerHTML=items.map(([id,k,u])=>`<div class="stat" data-b="${id}"><span class="k">${k}</span><span class="v" data-s="${id}">—</span><span class="u">${u}</span></div>`).join('');
+  const el={},box={};stats.querySelectorAll('[data-s]').forEach(e=>el[e.dataset.s]=e);stats.querySelectorAll('[data-b]').forEach(e=>box[e.dataset.b]=e);
+  const row=document.querySelector(`[data-row="${kind}"]`);
+  return {kind,sim:null,canvas,ctx:canvas.getContext('2d'),scv:sec.querySelector('.scatter'),el,box,row,w:0,h:0,s:1,lh:24,y0:20};});
+function warm(p){p.sim=new Sim(POPS[p.kind],p.kind==='ideal'?11:23,{lambda:1.15,vzone:VZONE,v0:V0,qcap:3,single:SINGLE[p.kind],singleLead:100});p.warmLeft=Math.round(900/DT);}
+panels.forEach(warm);
+function resize(){const dpr=window.devicePixelRatio||1;for(const p of panels){const w=p.canvas.getBoundingClientRect().width;if(!w)continue;
+  p.s=w/L;p.lh=Math.round(Math.max(16,Math.min(28,p.s*4.6)));p.y0=20;const h=p.y0+2*p.lh+30;if(p.canvas.style.height!==h+'px')p.canvas.style.height=h+'px';
+  p.w=w;p.h=h;p.canvas.width=Math.round(w*dpr);p.canvas.height=Math.round(h*dpr);p.ctx.setTransform(dpr,0,0,dpr,0,0);}}
+new ResizeObserver(resize).observe(document.querySelector('.wrap'));resize();
+function rr(ctx,x,y,w,h,r){r=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function drawVeh(ctx,c,s,lh,cy,body,col,isYou){const len=c.len*s,x1=(c.x-c.len)*s,w=Math.min(lh*0.68,Math.max(5,c.w*s*1.2));const dark='rgba(0,0,0,.38)',light='rgba(255,255,255,.28)';
+  if(c.veh==='semi'||c.veh==='box'){const cab=(c.veh==='semi'?3.4:2.6)*s,gap=Math.max(1,0.5*s),tl=len-cab-gap;ctx.fillStyle=body;rr(ctx,x1,cy-w/2,tl,w,1.5);ctx.fill();ctx.fillStyle=light;rr(ctx,x1,cy-w/2,tl,w,1.5);ctx.fill();
+    if(tl>20){ctx.strokeStyle='rgba(0,0,0,.12)';ctx.lineWidth=1;for(let x=x1+6;x<x1+tl-3;x+=6){ctx.beginPath();ctx.moveTo(x,cy-w/2+1);ctx.lineTo(x,cy+w/2-1);ctx.stroke();}}
+    ctx.fillStyle=body;rr(ctx,x1+tl+gap,cy-w*0.43,cab,w*0.86,Math.max(1.5,w*0.2));ctx.fill();ctx.fillStyle=dark;ctx.fillRect(x1+tl+gap+cab*0.6,cy-w*0.33,Math.max(1.2,cab*0.18),w*0.66);}
+  else{ctx.fillStyle=body;rr(ctx,x1,cy-w/2,len,w,Math.max(1.5,w*0.32));ctx.fill();ctx.fillStyle=dark;
+    if(c.veh==='pickup'){ctx.fillRect(x1+len*0.66,cy-w*0.32,Math.max(1.2,len*0.09),w*0.64);ctx.fillRect(x1+len*0.4,cy-w*0.32,Math.max(1,len*0.05),w*0.64);ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(x1+len*0.06,cy-w*0.32,len*0.3,w*0.64);}
+    else{ctx.fillRect(x1+len*0.64,cy-w*0.34,Math.max(1.2,len*0.11),w*0.68);ctx.fillRect(x1+len*0.16,cy-w*0.3,Math.max(1,len*0.08),w*0.6);}}
+  if(isYou){ctx.strokeStyle=col.ink;ctx.lineWidth=1.3;rr(ctx,x1,cy-w/2,len,w,Math.max(1.5,w*0.32));ctx.stroke();}}
+function colors(){const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim();const o={shoulder:g('--shoulder'),asphalt:g('--asphalt'),closed:g('--asphalt-closed'),stripe:g('--stripe'),zone:g('--zone'),you:g('--you'),carOpen:g('--car-open'),ink:g('--ink'),muted:g('--muted'),rule:g('--rule'),good:g('--good')};for(const n in COLOR)o[n]=g(COLOR[n]);return o;}
+function classOf(c){return c.cls||(c.gaveUp?'Early merger':c.d.arch);}
+function draw(p,col){const {ctx,w,h,sim,s,lh,y0}=p;if(!w)return;const Mx=M*s;
+  ctx.fillStyle=col.shoulder;ctx.fillRect(0,0,w,h);ctx.fillStyle=col.asphalt;ctx.fillRect(0,y0,w,lh);ctx.fillRect(0,y0+lh,Mx,lh);ctx.fillStyle=col.closed;ctx.fillRect(Mx,y0+lh,w-Mx,lh);
+  ctx.save();ctx.beginPath();ctx.rect(Mx,y0+lh,w-Mx,lh);ctx.clip();ctx.strokeStyle=col.zone;ctx.globalAlpha=.35;ctx.lineWidth=2;for(let x=Mx-lh;x<w;x+=10){ctx.beginPath();ctx.moveTo(x,y0+2*lh);ctx.lineTo(x+lh,y0+lh);ctx.stroke();}ctx.restore();
+  ctx.strokeStyle=col.stripe;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,y0+1);ctx.lineTo(w,y0+1);ctx.moveTo(0,y0+2*lh-1);ctx.lineTo(Mx,y0+2*lh-1);ctx.stroke();ctx.beginPath();ctx.moveTo(Mx,y0+lh);ctx.lineTo(w,y0+lh);ctx.stroke();
+  ctx.setLineDash([3*s,6*s]);ctx.beginPath();ctx.moveTo(0,y0+lh);ctx.lineTo(Mx,y0+lh);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=col.zone;const cone=(x,y)=>{ctx.beginPath();ctx.moveTo(x,y-4);ctx.lineTo(x+3.5,y+3);ctx.lineTo(x-3.5,y+3);ctx.closePath();ctx.fill();};
+  for(let i=0;i<=4;i++)cone(Mx+3+i*4,y0+2*lh-5-i*(lh-8)/4);for(let x=Mx+28;x<w-4;x+=22)cone(x,y0+lh+5);
+  ctx.font='800 11px Overpass, system-ui, sans-serif';ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  const mph=v=>v==null?'—':Math.round(v*MPH)+' mph';const behind=l=>sim.pend[l].length+sim.cars.filter(c=>c.lane===l&&c.x<0).length;
+  ctx.fillStyle=col.muted;ctx.fillText('OPEN LANE  '+mph(sim.v0e)+(behind(0)?'  ·  '+behind(0)+' more waiting behind':''),4,y0-6);
+  const fast=sim.v0e!=null&&sim.v1e!=null&&sim.v1e>sim.v0e*1.8+1;ctx.fillStyle=fast?col.zone:col.muted;ctx.textAlign='right';ctx.fillText('CLOSING LANE  '+mph(sim.v1e)+(behind(1)?'  ·  '+behind(1)+' behind':''),w-4,y0+2*lh+16);ctx.textAlign='left';
+  let you=null;if(p.kind==='mine'){for(const c of sim.cars)if(c.lane===1&&c.d.arch==='Pace holder'&&!c.cls&&c.x>0&&(!you||c.x>you.x))you=c;}
+  for(const c of sim.cars){const k=classOf(c);drawVeh(ctx,c,s,lh,y0+lh*(0.5+c.y),col[k]||col.carOpen,col,c===you);}
+  if(you){const cx=(you.x-you.len/2)*s,by=y0+2*lh+4;ctx.fillStyle=col.you;ctx.beginPath();ctx.moveTo(cx,by);ctx.lineTo(cx+5,by+7);ctx.lineTo(cx-5,by+7);ctx.closePath();ctx.fill();ctx.font='800 10px Overpass, system-ui, sans-serif';ctx.fillStyle=col.ink;ctx.fillText('YOU',cx+7,by+8);}
+  ctx.font='700 10px Overpass, system-ui, sans-serif';ctx.textAlign='center';ctx.fillStyle=col.zone;
+  for(const c of sim.cars)if(c.honk>0&&c.lane===1){ctx.globalAlpha=Math.min(1,c.honk*2);ctx.fillText('honk!',(c.x-c.len/2)*s,y0+2*lh+26);ctx.globalAlpha=1;}}
+function scatterRange(){let x0=-5,x1=15,y1=60;for(const p of panels)for(const q of p.sim.pts){x0=Math.min(x0,q.g);x1=Math.max(x1,q.g);y1=Math.max(y1,q.T);}
+  const xs=(x1-x0)>40?10:5;x0=Math.floor(x0/xs)*xs;x1=Math.ceil(x1/xs)*xs;const ys=y1>300?100:y1>150?50:20;y1=Math.ceil(y1/ys)*ys;return {x0,x1,y1,xs,ys};}
+function drawScatter(p,col,rg){const cv=p.scv;if(!cv)return;const r=cv.getBoundingClientRect();if(!r.width)return;const dpr=window.devicePixelRatio||1,W=r.width,H=r.height;
+  if(cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);}const c=cv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,W,H);
+  const L0=52,R0=12,T0=14,B0=40,pw=W-L0-R0,ph=H-T0-B0,{x0,x1,y1,ys,xs}=rg;
+  const X=v=>L0+(v-x0)/(x1-x0)*pw,Y=v=>T0+ph-(v/y1)*ph;
+  c.font='11px Overpass, system-ui, sans-serif';c.fillStyle=col.muted;c.strokeStyle=col.rule;c.lineWidth=1;c.textAlign='right';c.textBaseline='middle';
+  for(let v=0;v<=y1;v+=ys){const y=Math.round(Y(v))+0.5;c.beginPath();c.moveTo(L0,y);c.lineTo(L0+pw,y);c.stroke();c.fillText(v+' s',L0-6,y);}
+  c.textAlign='center';c.textBaseline='top';for(let v=Math.ceil(x0/xs)*xs;v<=x1;v+=xs){const x=Math.round(X(v))+0.5;c.beginPath();c.moveTo(x,T0);c.lineTo(x,T0+ph);c.stroke();c.fillText(v,x,T0+ph+5);}
+  c.fillText('Cars passed on the way to the cones (negative = got passed)',L0+pw/2,H-15);
+  const now=p.sim.t;for(const q of p.sim.pts){c.globalAlpha=Math.max(0.25,1-(now-q.t)/900);c.fillStyle=col[q.arch]||col.carOpen;c.beginPath();c.arc(X(Math.max(x0,Math.min(x1,q.g))),Y(Math.min(y1,q.T)),2.8,0,7);c.fill();}c.globalAlpha=1;}
+const sec=v=>v==null?'—':Math.round(v)+' s';
+function verdict(p){const s=p.sim;if(p.warmLeft>0||s.cutShare==null)return {cls:'',html:'Filling the road…',state:''};
+  const pct=Math.round(s.cutShare*100),d=s.tOpen!=null&&s.tZip!=null?Math.round(s.tOpen-s.tZip):null;
+  if(pct>=15)return {cls:'bad',state:'bad',html:`Line cutting is common<small>${pct}% of drivers cut the line${d!=null&&d>0?` and get there ${d} s sooner`:''}.</small>`};
+  if(pct>=4)return {cls:'good',state:'ok',html:`Some line cutting<small>${pct}% of drivers cut the line${p.kind==='mine'?', mostly before they caught up to you':', usually by just a few places'}.</small>`};
+  return {cls:'good',state:'ok',html:`Fair<small>Almost nobody cuts the line.</small>`};}
+function updateStats(){for(const p of panels){const s=p.sim,e=p.el;const warm=p.warmLeft>0;
+  e.to.textContent=warm||s.tOpen==null?'—':Math.round(s.tOpen);e.tz.textContent=warm||s.tZip==null?'—':Math.round(s.tZip);
+  e.gz.textContent=warm||s.cutShare==null?'—':Math.round(s.cutShare*100)+'%';e.gz.nextElementSibling.textContent=warm||s.gainZip==null?'of drivers':'of drivers · avg '+Math.round(s.gainZip)+' cars passed';
+  if(e.hk)e.hk.textContent=s.honks;
+  const v=verdict(p);p.box.tz.classList.toggle('hi',v.state==='bad');p.box.gz.classList.toggle('hi',v.state==='bad');p.box.tz.classList.toggle('ok',v.state==='ok');p.box.gz.classList.toggle('ok',v.state==='ok');
+  const bars=p.row.querySelectorAll('.bar');
+  [[bars[0],warm?null:s.tOpen,'early mergers'],[bars[1],warm?null:s.tZip,'line cutters']].forEach(([b,t,lab])=>{const rm=Math.max(s.tOpen||0,s.tZip||0,1);b.querySelector('i').style.width=t==null?'0':(t/rm*78)+'%';b.querySelector('b').textContent=t==null?'—':Math.round(t)+' s '+lab;});
+  const vd=p.row.querySelector('.verdict');vd.className='verdict '+v.cls;vd.innerHTML=v.html;}}
+let speed=4,last=performance.now(),acc=0,statT=0;
+document.querySelectorAll('[data-sp]').forEach(b=>b.addEventListener('click',()=>{speed=+b.dataset.sp;document.querySelectorAll('[data-sp]').forEach(o=>o.setAttribute('aria-pressed',o===b?'true':'false'));}));
+document.getElementById('restart').addEventListener('click',()=>{panels.forEach(warm);updateStats();});
+function frame(now){const dt=Math.min(0.1,(now-last)/1000);last=now;acc+=dt*speed;
+  for(const p of panels){while(p.warmLeft>0){p.sim.step(DT);p.warmLeft--;if(p.warmLeft%2000===0)break;}
+    if(p.warmLeft===0){p.warmLeft=-1;const s=p.sim;s.pts=[];s.recent={open:[],zip:[]};s.byArch={};s.honks=0;s.tOpen=s.tZip=s.gainZip=s.gainOpen=s.cutShare=null;}}
+  let n=0;while(acc>=DT&&n<400){for(const p of panels)if(p.warmLeft<=0)p.sim.step(DT);acc-=DT;n++;}
+  const col=colors();for(const p of panels)draw(p,col);statT+=dt;if(statT>0.5){statT=0;updateStats();const rg=scatterRange();for(const p of panels)drawScatter(p,col,rg);}
+  requestAnimationFrame(frame);}
+updateStats();requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
