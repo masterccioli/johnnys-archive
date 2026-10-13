@@ -1,0 +1,22 @@
+body {
+  background: #c0c0c0 url("data:image/gif;base64,R0lGODlhCAAIAIABAK+vr8DAwCH5BAEKAAEALAAAAAAIAAgAAAIOjI+pq+APXVBxyWhvcgEAOw==");
+  color: #000;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 16px;
+  margin: 24px;
+}
+a:link { color: #0000ee; }
+a:visited { color: #551a8b; }
+a:active { color: #ff0000; }
+hr { border: 0; border-top: 2px groove #fff; }
+table.box { border: 2px outset #fff; background: #d4d0c8; padding: 6px; }
+.counter {
+  font-family: "Courier New", monospace;
+  background: #000; color: #0f0;
+  padding: 1px 4px; border: 2px inset #888; letter-spacing: 2px;
+}
+.small { font-size: 11px; }
+ul { list-style: square; }
+.blink { animation: blink 1s steps(2, start) infinite; }
+@keyframes blink { to { visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .blink { animation: none; } }
