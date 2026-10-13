@@ -1,0 +1,441 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Cognitive Modeling</title><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;800&family=Overpass+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: one column. Hypothesis (mechanism checklist + driver sliders) on top, the running world below it, the scorecard between them. */
+:root{--bg:#E7EBE6;--panel:#F5F7F3;--ink:#16211B;--muted:#55625A;--rule:#C9D1C8;--sign:#0F5E3C;--sign-ink:#FFF;--zone:#D9581A;--you:#EDB60C;--good:#13804F;--bad:#B4321C;
+--asphalt:#3A3F42;--asphalt-closed:#2C3033;--stripe:#F2F2EC;--shoulder:#BCC6BA;--car-open:#AFC2CF;--gate:#6E7F8C;--obs:#7A6A9E;
+--f-display:"Overpass","Arial Narrow",system-ui,sans-serif;--f-body:"Overpass",system-ui,sans-serif;--f-mono:"Overpass Mono",ui-monospace,Menlo,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1411;--panel:#161D19;--ink:#E4EAE5;--muted:#9AA79F;--rule:#28322C;--sign:#17744C;--zone:#F07633;--you:#F5C431;--good:#3FBF7F;--bad:#F07A62;--asphalt:#2B2F32;--asphalt-closed:#202326;--stripe:#D8D8D0;--shoulder:#1D2621;--car-open:#8EA3B2;--gate:#56656F;--obs:#A897CF;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F1411;--panel:#161D19;--ink:#E4EAE5;--muted:#9AA79F;--rule:#28322C;--sign:#17744C;--zone:#F07633;--you:#F5C431;--good:#3FBF7F;--bad:#F07A62;--asphalt:#2B2F32;--asphalt-closed:#202326;--stripe:#D8D8D0;--shoulder:#1D2621;--car-open:#8EA3B2;--gate:#56656F;--obs:#A897CF;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:28px 56px}
+.wrap{max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+.sign{background:var(--sign);color:var(--sign-ink);border-radius:14px;padding:6px}
+.sign-inner{border:3px solid var(--sign-ink);border-radius:10px;padding:18px 22px 16px;display:flex;flex-direction:column;gap:4px}
+.sign .eyebrow{font-family:var(--f-display);font-weight:600;font-size:13px;letter-spacing:.14em;text-transform:uppercase;opacity:.85}
+.sign h1{margin:0;font-family:var(--f-display);font-weight:800;font-size:clamp(34px,6vw,56px);line-height:1;text-wrap:balance}
+.sign p{margin:6px 0 0;max-width:62ch;opacity:.92}
+p{margin:0;max-width:70ch}
+h2{margin:0;font-family:var(--f-display);font-weight:800;font-size:22px;line-height:1.2;text-wrap:balance}
+h3{margin:0;font-family:var(--f-display);font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)} .cap{font-size:13px;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--rule);padding-top:20px}
+.chain{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:10px;align-items:center;font-size:14px}
+.chain .box{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;min-width:0}
+.chain .box b{display:block;font-family:var(--f-display);font-weight:800;font-size:15px;margin-bottom:2px}
+.chain .arrow{font-size:22px;color:var(--muted)}
+@media (max-width:640px){.chain{grid-template-columns:1fr}.chain .arrow{transform:rotate(90deg);text-align:center}}
+.btn{font:600 14px var(--f-body);color:var(--ink);background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn.primary{background:var(--sign);color:var(--sign-ink);border-color:var(--sign)}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg button{font:600 14px var(--f-body);color:var(--ink);background:var(--panel);border:0;padding:6px 12px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)} .seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--zone);outline-offset:2px}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;font-size:14px;color:var(--muted)}
+/* mechanisms */
+.mechs{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:8px}
+.mech{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:start;background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:10px 12px;font-size:14px}
+.mech input{margin-top:4px}
+.mech b{font-family:var(--f-display);font-weight:800}
+.mech .d{grid-column:2;color:var(--muted);font-size:13px}
+.mech.extra{border-style:dashed}
+.mech .tag{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+/* slider table */
+.tblwrap{overflow-x:auto;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;font-size:13px;width:100%;min-width:640px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--rule);text-align:left;vertical-align:middle}
+th{font-family:var(--f-display);font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+th:first-child,td:first-child{position:sticky;left:0;background:var(--panel);white-space:nowrap}
+td.sw i{display:inline-block;width:14px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.sl{display:flex;align-items:center;gap:6px;min-width:150px}
+.sl input[type=range]{flex:1;min-width:80px;accent-color:var(--sign)}
+.sl output{font-family:var(--f-mono);font-size:12px;min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+tr.off{display:none}
+tr.mix td{background:color-mix(in srgb,var(--panel),var(--ink) 5%)}
+/* scorecard */
+.score{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:9px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .k{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font-family:var(--f-mono);font-weight:700;font-size:22px;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .u{font-size:13px;color:var(--muted)}
+.stat.good{border-color:var(--good);box-shadow:inset 0 0 0 1px var(--good)} .stat.bad{border-color:var(--bad);box-shadow:inset 0 0 0 1px var(--bad)}
+.fit{display:grid;grid-template-columns:170px 1fr 90px;gap:6px 12px;align-items:center;font-size:13px;background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:12px 14px}
+.fit .n{color:var(--muted)} .fit .bars{display:flex;flex-direction:column;gap:3px}
+.fit .bar{display:flex;align-items:center;gap:6px} .fit .bar i{display:block;height:9px;border-radius:2px;min-width:2px;transition:width .4s}
+.fit .bar.o i{background:var(--obs)} .fit .bar.m i{background:var(--zone)}
+.fit .bar b{font-family:var(--f-mono);font-weight:700;font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fit .err{font-family:var(--f-mono);font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:560px){.fit{grid-template-columns:1fr}.fit .err{text-align:left}}
+.legend{display:flex;flex-wrap:wrap;gap:10px 22px;font-size:14px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:8px} .chip{width:22px;height:11px;border-radius:3px;display:inline-block}
+.road{width:100%;height:110px;display:block;border-radius:8px}
+.scatter{width:100%;height:230px;display:block;background:var(--panel);border:1px solid var(--rule);border-radius:8px}
+.cmp{width:100%;min-width:0;font-size:13px}
+.cmp th,.cmp td{text-align:right} .cmp th:first-child,.cmp td:first-child{text-align:left}
+.notes ul{margin:0;padding-left:20px;max-width:70ch}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header class="sign"><div class="sign-inner">
+    <span class="eyebrow">A demonstration, using the lane-closure simulation</span>
+    <h1>Cognitive Modeling</h1>
+    <p>Behaviour is what we can see. Cognition is what we hypothesise is going on inside the black box between the environment and the behaviour. A cognitive model makes that hypothesis explicit enough to run.</p>
+  </div></header>
+
+  <section>
+    <h2>What a cognitive model is</h2>
+    <p>At a lane closure we can observe behaviour: the open lane crawls, a few drivers fly down the closing lane and merge at the cones, most get over early and wait. We can also observe the environment: the cones, the queue, the car alongside. What we cannot observe is the processing in between. We could try to relate environment to behaviour directly, but the same environment produces early mergers, line cutters and pace holders, so the cause of the behaviour is not the environment alone. A cognitive model hypothesises the processing: a small set of internal processes, each with a setting, through which the environment is turned into behaviour. Behaviour is then the result of the environment and the cognitive process together.</p>
+    <p>Two things make such a model good, and they pull against each other. A simple model needs few processes, few settings, to produce the behaviour. A robust model reproduces the behaviour that is actually observed in the target population, across the whole pattern and not just one corner of it. Any behaviour can be reproduced by a model with enough dials, and any model is simple if it is allowed to fit nothing. The goal of cognitive modeling is the balance: the simplest hypothesis about cognition that is still robust to what people do.</p>
+    <div class="chain">
+      <div class="box"><b>Environment</b>The cones ahead, the queue in the open lane, the car alongside, the gap that opens or doesn't.</div>
+      <div class="arrow">→</div>
+      <div class="box"><b>Hypothesised cognition</b>Inside the black box: how close is "close"? How much faster than the lane beside me will I go? What gap will I take? Will I let someone in? Each driver has a setting for each.</div>
+      <div class="arrow">→</div>
+      <div class="box"><b>Behaviour</b>Lane speeds, who waits how long, who gains places on whom. Compare it to the pattern observed in the target population.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>1 · The observed pattern</h2>
+    <p class="muted">The target. In a real study this would come from human drivers; here it is a fixed reference pattern that stands in for data, so the exercise is about the method. The model below is scored against it.</p>
+    <div class="fit" id="fitbox"></div>
+    <p class="cap">Error per measure is |model − observed| in units of a typical spread (100 s of wait, 10 places, 20 % share, 2 mph). Fit = mean error across measures; 0 is perfect.</p>
+  </section>
+
+  <section>
+    <h2>2 · Hypothesised processes</h2>
+    <p class="muted">Each checkbox is a mechanism the model is allowed to use. Unchecked, it is held at a neutral value for everyone, so it can't explain anything. Dashed boxes are extra hypotheses; they start off. Fewer checked boxes is a simpler model; a lower fit error is a more robust one. The starting model doesn't fit the observed pattern: try adding one extra mechanism at a time and watch the fit error. Some buy robustness; most only cost simplicity.</p>
+    <div class="mechs" id="mechs"></div>
+  </section>
+
+  <section>
+    <h2>3 · Driver types and their settings</h2>
+    <p class="muted">Columns are driver types, the top row is how much of the population each one is. Every other row is a process; it only appears when its mechanism is checked. Values are the type's mean; individuals scatter around it.</p>
+    <div class="tblwrap"><table id="ptable"></table></div>
+    <div class="controls">
+      <button class="btn primary" id="apply">Apply &amp; rerun</button>
+      <button class="btn" id="resetp">Reset to the starting model</button>
+      <button class="btn" id="snap">Save as a model to compare</button>
+      <span>Speed</span><div class="seg" role="group"><button data-sp="2" aria-pressed="false">2×</button><button data-sp="4" aria-pressed="true">4×</button><button data-sp="8" aria-pressed="false">8×</button></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>4 · The behaviour the model produces</h2>
+    <div class="score" id="score"></div>
+    <div class="legend"><span><i class="chip" style="background:var(--car-open)"></i>Early merger</span><span><i class="chip" style="background:var(--zone)"></i>Line cutter</span><span><i class="chip" style="background:var(--you)"></i>Pace holder</span><span><i class="chip" style="background:var(--gate)"></i>Gatekeeper</span></div>
+    <canvas class="road" id="road"></canvas>
+    <p class="cap">Each dot is one driver reaching the cones: places gained on the way, and total wait. Colour is what they did, not what type they were drawn as.</p>
+    <canvas class="scatter" id="scatter"></canvas>
+  </section>
+
+  <section>
+    <h2>5 · Comparing models</h2>
+    <p class="muted">Save a configuration and it lands here with its fit and its number of dials. Fit error measures robustness; the mechanism count measures simplicity. A model that fits better with more dials isn't automatically better; the penalised column is one illustrative way to trade the two off (fit + 0.15 per mechanism, in the spirit of AIC and BIC).</p>
+    <div class="tblwrap"><table class="cmp" id="cmp"><thead><tr><th>Model</th><th>Mechanisms</th><th>Types in use</th><th>Fit error</th><th>Penalised</th><th></th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="notes">
+    <h2>How this would work with real data</h2>
+    <p>With human drivers you would record the same measures: waits by group, who gains places on whom, lane speeds. Each candidate model is run many times, its summary pattern compared to the data with a likelihood or a distance like the one here, and the parameters fitted by search rather than by hand. Then models are compared on two axes at once: how well they reproduce the data, and how many free parameters they needed to do it. Information criteria (AIC, BIC) turn that into a single number; cross-validation asks whether the fit survives on data the model never saw. A model that needs a new dial for every new observation has explained nothing; one that reproduces early mergers, line cutters and pace holders by moving a single setting has found a plausible piece of cognition. Simplicity and robustness are both required, and the model that balances them is the better account of the mind behind the behaviour.</p>
+    <ul class="cap">
+      <li>Processes here are driver parameters: merge pressure (base, distSens, dScale), speed relative to the open lane (zip), gap acceptance, yielding, lane presence (pStay), give-up (queueSens), re-engagement, noticing distance (horizon), shorter-lane choice (laneSense), social contagion (normSens), a pace-matching gadget (gadget), and personal car-following (T, s0).</li>
+      <li>Road physics are shared and not part of the hypothesis: 34 mph free speed, a 5 mph crawl past the cones, arrivals above capacity, an entry queue of 3 per lane.</li>
+      <li>The reference pattern is the average of three long runs of one particular configuration of this same simulator (all mechanisms on); it is a stand-in for data, not data. The starting model is deliberately missing some of what generated it.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+// Lane-closure sim v2: all behavior emerges from a per-driver parameter vector.
+// Works in Node (module.exports) and browser (window.LaneSim).
+(function(root){
+const L=170, M=135, U=120, DT=0.05, WIN=300, CUT=3, B=2; let VZONE=4, V0=15;
+const VEH={car:{len:4.6,w:1.85,a:1.5},pickup:{len:5.8,w:2.0,a:1.4},box:{len:8.5,w:2.4,a:1.0},semi:{len:18,w:2.55,a:0.7}};
+function pickVeh(r){return r<0.64?'car':r<0.82?'pickup':r<0.92?'box':'semi';}
+function idm(v,gap,dv,a,T,s0){const s=s0+Math.max(0,v*T+v*dv/(2*Math.sqrt(a*B)));const g=Math.max(gap,0.1);return a*(1-Math.pow(v/V0,4)-(s/g)*(s/g));}
+function rng(seed){let s=seed>>>0;return()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};}
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+// ---- Driver parameter vector -------------------------------------------
+// base     : baseline merge hazard (1/s) once the closure is noticed
+// distSens : extra merge hazard at the cones (1/s), decaying upstream as exp(-dist/dScale)
+// dScale   : metres over which that proximity hazard falls off (small = waits until the last moment)
+// queueSens: extra hazard per slow car queued ahead in own lane (1/s per car)
+// zip      : 0 = hold pace with the open lane, 1 = drive as fast as the road allows
+// gapAccept: multiplier on the gap a driver needs before merging (1 = normal, <1 = squeezes in)
+// yield    : probability of opening a gap for someone signalling in
+// horizon  : metres before the cones at which the driver notices the closure
+// pStay    : probability of choosing the closing lane on arrival (when not choosing by queue length)
+// laneSense: probability of choosing the shorter lane instead of going by pStay
+// T, s0    : IDM headway (s) and standstill gap (m)
+const PKEYS=['base','distSens','dScale','queueSens','zip','gapAccept','yield','horizon','pStay','laneSense','normSens','gadget','T','s0'];
+// normSens : social contagion: hazard (1/s per passing cutter) for an open-lane driver to switch into the closing lane and cut
+// gadget   : probability the driver carries the pace-matching rule (zip forced to 0)
+
+// An archetype is {name, weight, params:{k:[mean,sd]}}; a population is a list of archetypes.
+function drawDriver(pop,r,mech){mech=mech||{};
+  let u=r()*pop.reduce((s,a)=>s+a.weight,0), arch=pop[pop.length-1];
+  for(const a of pop){ if(u<a.weight){arch=a;break;} u-=a.weight; }
+  const d={arch:arch.name};
+  for(const k of PKEYS){const [m,sd]=arch.params[k]||[0,0]; // truncated normal via clamp
+    const z=Math.sqrt(-2*Math.log(1-r()))*Math.cos(2*Math.PI*r()); d[k]=m+sd*z;}
+  d.base=Math.max(0,d.base);d.distSens=Math.max(0,d.distSens);d.dScale=Math.max(3,d.dScale);d.queueSens=Math.max(0,d.queueSens);
+  d.zip=clamp(d.zip,0,1);d.gapAccept=Math.max(0.3,d.gapAccept);d.yield=clamp(d.yield,0,1);
+  d.horizon=clamp(d.horizon,20,M+U);d.pStay=clamp(d.pStay,0,1);d.laneSense=clamp(d.laneSense,0,1);d.normSens=Math.max(0,d.normSens||0);d.gadget=clamp(d.gadget||0,0,1);
+  // mechanism switches: an unchecked mechanism is fixed at its neutral value for everyone
+  if(mech.queue===false)d.queueSens=0; if(mech.laneSense===false)d.laneSense=0; if(mech.horizon===false)d.horizon=230; if(mech.norm===false)d.normSens=0; if(mech.gadget===false)d.gadget=0;
+  if(mech.indiv===false){d.T=1.4;d.s0=2.5;}
+  if(d.gadget>0&&r()<d.gadget){d.zip=0;d.hasGadget=true;}d.T=Math.max(0.6,d.T);d.s0=Math.max(1,d.s0);
+  return d;
+}
+
+class Sim{
+  constructor(pop,seed,opts){this.pop=pop;this.seed=seed;this.single=(opts&&opts.single)||null;this.mech=(opts&&opts.mech)||{};this.singleLead=(opts&&opts.singleLead)||70;this.lambda=(opts&&opts.lambda)||1.15;this.qcap=(opts&&opts.qcap)||8;if(opts&&opts.vzone)VZONE=opts.vzone;if(opts&&opts.v0)V0=opts.v0;this.reset();}
+  reset(){this.r=rng(this.seed);this.t=0;this.cars=[];this.pend=[[],[]];this.nextArr=0;this.id=0;this.seq=0;
+    this.recent={open:[],zip:[]};this.pts=[];this.exited=[];this.cutShare=null;this.tOpen=null;this.tZip=null;this.gainZip=null;this.gainOpen=null;this.v0e=null;this.v1e=null;this.honks=0;this.byArch={};}
+  arrive(){let d=drawDriver(this.pop,this.r,this.mech),veh=pickVeh(this.r());
+    if(this.single&&!this.cars.some(c=>c.d.arch===this.single.name&&!c.cls&&c.x<M-this.singleLead)&&!this.pend[1].some(q=>q.d.arch===this.single.name)){d=drawDriver([this.single],this.r,this.mech);veh='car';}
+    let lane;
+    if(this.r()<d.laneSense){const n=l=>this.pend[l].length+this.cars.filter(c=>c.lane===l&&c.x<M-80).length;const df=n(0)-n(1);lane=df===0?(this.r()<d.pStay?1:0):(df>0?1:0);}
+    else lane=(this.r()<d.pStay)?1:0;
+    const q=this.pend[lane];
+    if(q.length<this.qcap) q.push({d,veh,tArr:this.t,seq:++this.seq});}
+  room(lane){let rear=null;for(const c of this.cars) if(c.lane===lane&&(!rear||c.x<rear.x)) rear=c;
+    if(!rear) return {ok:true,v:V0*0.8};const gap=rear.x-rear.len+U;
+    return {ok:gap>2.5,v:gap<60?Math.min(V0*0.8,rear.v+Math.max(0,gap-3)*0.3):V0*0.8};}
+  spawn(){for(const lane of [0,1]){const q=this.pend[lane];if(!q.length)continue;const rm=this.room(lane);
+    if(rm.ok){const p=q.shift();const V=VEH[p.veh];
+      this.cars.push({id:++this.id,seq:p.seq,d:p.d,veh:p.veh,len:V.len,w:V.w,a:V.a,lane,orig:lane,x:-U,y:lane,v:rm.v,acc:0,tIn:p.tArr,done:false,want:false,ghost:null,yielder:null,yd:{},honk:0,merged:false,ref:null,vcap:null,gaveUp:false,cls:null});}}}
+  step(dt){
+    this.t+=dt;
+    while(this.t>=this.nextArr){this.arrive();this.nextArr+=-Math.log(1-this.r())/this.lambda;}
+    this.spawn();
+    const cars=this.cars;
+    const l0=cars.filter(c=>c.lane===0).sort((a,b)=>b.x-a.x);
+    const l1=cars.filter(c=>c.lane===1).sort((a,b)=>b.x-a.x);
+    for(const c of cars){c.ghost=null;c.yielder=null;}
+    // --- merge intention (closing lane) ---
+    for(let i=0;i<l1.length;i++){const c=l1[i],d=c.d;
+      if(c.x>=M-8){c.want=true;continue;}
+      const aware=c.x>M-d.horizon; if(!aware){c.want=false;continue;}
+      const prox=Math.exp(-(M-c.x)/d.dScale);
+      let nq=0; for(let j=i-1;j>=0;j--){const o=l1[j]; if(o.x-o.len-c.x>60) break; if(o.v<5) nq++;}
+      const hq=d.queueSens*nq, hd=d.base+d.distSens*prox;
+      if(!c.want){const u=this.r(); if(u<hq*dt){c.want=true;c.gaveUp=true;} else if(u<(hq+hd)*dt){c.want=true;c.gaveUp=false;}}
+      // intention decays if the lane ahead is open and fast (re-engage)
+      if(this.mech.reengage!==false&&c.want&&c.x<M-8&&nq===0&&d.base<0.05&&this.r()<0.5*dt){c.want=false;c.gaveUp=false;}
+    }
+    // --- social contagion: open-lane drivers who watch cutters stream past may join them ---
+    for(const c of l0){const d=c.d; if(!(d.normSens>0)||c.x>M-40||c.x<-U+10||c.done) continue;
+      let passing=0; for(const o of l1){ if(Math.abs(o.x-c.x)<15&&o.v>c.v+3) passing++; }
+      if(passing&&this.r()<d.normSens*passing*dt){
+        let okGap=true; for(const o of l1){ if(o.x>c.x-c.len-2&&o.x-o.len<c.x+2){okGap=false;break;} }
+        if(okGap){c.lane=1;c.want=false;c.gaveUp=false;d.zip=Math.max(d.zip,0.8);d.base=0;d.distSens=Math.max(d.distSens,3);d.dScale=Math.min(d.dScale,25);d.gapAccept=Math.min(d.gapAccept,0.6);c.contagion=true;}}}
+    // --- ask a follower in the open lane to yield ---
+    for(const m of l1){ if(!m.want) continue;
+      let F=null; for(const c of l0){ if(c.x<m.x-m.len-0.5){F=c;break;} }
+      if(!F||m.x-F.x>30+m.len||F.ghost) continue;
+      if(F.yd[m.id]==null) F.yd[m.id]=this.r()<F.d.yield;
+      if(!F.yd[m.id]) continue;
+      F.ghost=m; m.yielder=F;
+    }
+    // --- open lane accel ---
+    for(let i=0;i<l0.length;i++){const c=l0[i],ld=l0[i-1],d=c.d;
+      let a=ld?idm(c.v,ld.x-ld.len-c.x,c.v-ld.v,c.a,d.T,d.s0):idm(c.v,1e4,0,c.a,d.T,d.s0);
+      if(c.ghost){const g=c.ghost,ag=idm(c.v,g.x-g.len-c.x,c.v-g.v,c.a,d.T,d.s0);if(ag>=-2.5)a=Math.min(a,ag);else{g.yielder=null;c.ghost=null;}}
+      if(c.x>=M-1&&c.vcap==null)c.vcap=Math.max(VZONE,c.v);
+      if(c.vcap!=null)a=Math.min(a,1.5*(c.vcap-c.v));
+      c.acc=a;}
+    // --- closing lane accel ---
+    for(let i=0;i<l1.length;i++){const c=l1[i],ld=l1[i-1],d=c.d;
+      let a=idm(c.v,M-c.x,c.v,c.a,d.T,d.s0);
+      if(ld) a=Math.min(a,idm(c.v,ld.x-ld.len-c.x,c.v-ld.v,c.a,d.T,d.s0));
+      // zip: speed cap relative to the adjacent open lane
+      if(c.x>M-d.horizon&&d.zip<1){
+        if(!c.ref||c.ref.lane!==0||c.ref.done||c.ref.x<c.x-15){c.ref=null;let bd=25;for(const o of l0){if(o.x<c.x-8)continue;const dd=Math.abs(o.x-c.x);if(dd<bd){bd=dd;c.ref=o;}}}
+        const ref=c.ref; if(ref){const hold=Math.pow(1-d.zip,4);const vcap=ref.v+d.zip*(V0-ref.v)+hold*clamp(0.4*(ref.x-c.x),-3,3); if(c.v>vcap-1) a=Math.min(a,Math.max(-2.5,1.5*(vcap-c.v)));}}
+      if(c.want){let Ld=null;for(const o of l0){if(o.x>=c.x-1&&(!Ld||o.x<Ld.x))Ld=o;}
+        if(Ld&&Ld.x-Ld.len-c.x<2.5){const tgt=c.gaveUp?Math.max(0,Ld.v-1.5):Math.max(Math.max(0,Ld.v-1.5)+d.zip*4.5,d.zip*8); a=Math.min(a,Math.max(-2.5,2*(tgt-c.v)));}}
+      c.acc=a;}
+    for(const c of cars){c.acc=Math.max(c.acc,-9);c.v=Math.max(0,c.v+c.acc*dt);c.x+=c.v*dt;if(c.lane===1&&c.x>M){c.x=M;c.v=0;}}
+    // --- execute merges (gap acceptance) ---
+    for(const m of l1){ if(!m.want||m.lane!==1) continue;
+      let Ld=null,F=null;for(const c of cars){if(c.lane!==0)continue;if(c.x>=m.x){if(!Ld||c.x<Ld.x)Ld=c;}else{if(!F||c.x>F.x)F=c;}}
+      const gF=Ld?Ld.x-Ld.len-m.x:99, gB=F?m.x-m.len-F.x:99, ga=m.d.gapAccept;
+      const ok=gF>ga*(0.5+Math.max(0,Ld?m.v-Ld.v:0)*0.3) && gB>ga*(0.5+Math.max(0,F?F.v-m.v:0)*0.5);
+      if(ok){m.lane=0;m.merged=true;m.mergeX=m.x;m.cls=m.x<0?'Early merger':(m.d.arch==='Pace holder'||m.d.arch==='Zipper')?m.d.arch:'Line cutter';}
+    }
+    // --- honks: impatient driver stuck behind a pace-holder ---
+    for(let i=1;i<l1.length;i++){const c=l1[i],ld=l1[i-1];
+      if(ld.d.zip<0.25&&c.d.zip>0.6&&ld.x-ld.len-c.x<18&&c.x<M-30&&ld.x>M-ld.d.horizon&&this.r()<0.5*dt){c.honk=0.9;this.honks++;}}
+    for(const c of cars){if(c.honk>0)c.honk-=dt;c.y+=(c.lane-c.y)*Math.min(1,dt*3);}
+    // --- lane speed EMAs ---
+    // traversal speed through the strip, by original lane: x=0 to the cones (open) or to the merge point (closing)
+    for(const c of cars){ if(c.t0==null&&c.x>=0){c.t0=this.t;c.x0=c.x;}
+      if(c.t0!=null&&!c.vDone){const end=c.orig===1?(c.lane===0?c.mergeX:null):(c.x>=M?M:null);
+        if(end!=null&&end-c.x0>5){c.vDone=true;const v=(end-c.x0)/Math.max(0.1,this.t-c.t0);
+          if(c.orig===1){this.v1e=this.v1e==null?v:this.v1e+(v-this.v1e)*0.15;} else {this.v0e=this.v0e==null?v:this.v0e+(v-this.v0e)*0.15;}}}}
+    // --- exits & stats ---
+    for(let i=cars.length-1;i>=0;i--){const c=cars[i];
+      if(!c.done&&c.x>=M-0.5&&c.lane===0){c.done=true;
+        let passedBy=0;for(const s of this.exited) if(s>c.seq) passedBy++;
+        let jumped=0;for(const o of cars) if(!o.done&&o.seq<c.seq) jumped++;
+        for(const q of this.pend) for(const o of q) if(o.seq<c.seq) jumped++;
+        if(!c.cls)c.cls=(c.orig===0&&c.d.arch!=='Zipper')?'Early merger':c.d.arch;
+        const g=jumped-passedBy,T=this.t-c.tIn,cut=c.cls==='Line cutter',R=this.recent;c.gjump=g;
+        (cut?R.zip:R.open).push({t:this.t,T,g});
+        this.pts.push({T,g,cut,t:this.t,arch:c.cls,orig:c.orig});if(this.pts.length>300)this.pts.shift();
+        const ba=this.byArch[c.cls]||(this.byArch[c.cls]={n:0,T:0,g:0,cut:0});ba.n++;ba.T+=T;ba.g+=g;ba.cut+=cut?1:0;
+        for(const kk of ['zip','open']){const a=R[kk];while(a.length&&a[0].t<this.t-WIN)a.shift();}
+        const av=(a,f)=>a.length?a.reduce((x,o)=>x+o[f],0)/a.length:null;
+        this.tZip=av(R.zip,'T');this.gainZip=av(R.zip,'g');this.cutShare=R.zip.length/Math.max(1,R.zip.length+R.open.length);this.tOpen=av(R.open,'T');this.gainOpen=av(R.open,'g');
+        this.exited.push(c.seq);
+        let minAlive=Infinity;for(const o of cars) if(!o.done&&o.seq<minAlive) minAlive=o.seq;
+        for(const q of this.pend) for(const o of q) if(o.seq<minAlive) minAlive=o.seq;
+        this.exited=this.exited.filter(s=>s>=minAlive);}
+      if(c.x-c.len>L+2) cars.splice(i,1);}
+  }
+}
+const API={Sim,PKEYS,L,M,U,DT,CUT,V0,VEH};
+if(typeof module!=='undefined') module.exports=API; else root.LaneSim=API;
+})(typeof window!=='undefined'?window:globalThis);
+
+// Archetypes: {name, weight, params:{key:[mean,sd]}}. Scenarios are mixtures of archetypes.
+const A=(name,weight,p)=>({name,weight,params:{
+  base:p.base||[0,0], distSens:p.distSens||[0,0], dScale:p.dScale||[25,5], queueSens:p.queueSens||[0,0], zip:p.zip||[1,0],
+  gapAccept:p.gapAccept||[1,0.2], yield:p.yield||[0.85,0.1], horizon:p.horizon||[200,40], pStay:p.pStay||[0.5,0], laneSense:p.laneSense||[0.5,0.2],
+  T:p.T||[1.4,0.4], s0:p.s0||[2.5,1]}});
+
+const earlyMerger=A('Early merger',0.60,{base:[0.15,0.08],distSens:[2,0.5],dScale:[80,20],queueSens:[0.1,0.05],zip:[0.9,0.1],gapAccept:[1.1,0.2],yield:[0.95,0.05],horizon:[230,30],pStay:[0,0],laneSense:[0,0]});
+const lineCutter =A('Line cutter', 0.40,{base:[0,0],distSens:[3,0.5],dScale:[25,3],queueSens:[0.05,0.03],zip:[0.8,0.1],gapAccept:[0.5,0.1],yield:[0.6,0.2],horizon:[200,30],pStay:[1,0],laneSense:[0.2,0.1]});
+const blocker    =A('Gatekeeper',  0.15,{base:[0.15,0.08],distSens:[2,0.5],dScale:[80,20],queueSens:[0.1,0.05],zip:[0.9,0.1],gapAccept:[1.1,0.2],yield:[0.05,0.05],horizon:[230,30],pStay:[0,0],laneSense:[0,0]});
+const paceHolder =A('Pace holder', 0.0, {base:[0,0],distSens:[3,0.5],dScale:[4,1],queueSens:[0,0],zip:[0.02,0.02],gapAccept:[1,0.2],yield:[0.95,0.05],horizon:[260,0],pStay:[1,0],laneSense:[0,0]});
+const zipper     =A('Zipper',      1.0, {base:[0,0],distSens:[3,0.3],dScale:[15,2],queueSens:[0,0],zip:[0.05,0.05],gapAccept:[1,0.2],yield:[0.95,0.05],horizon:[230,20],pStay:[0.5,0],laneSense:[1,0]});
+
+const clone=(a,w)=>({...a,weight:w});
+const POPS={
+  ideal:[zipper],
+  real:[earlyMerger,lineCutter],
+  mine:[earlyMerger,lineCutter],   // plus one pace holder (you) on the road at a time: see SINGLE
+};
+const SINGLE={mine:paceHolder};
+const ARCH={earlyMerger,lineCutter,blocker,paceHolder,zipper};
+if(typeof module!=='undefined') module.exports={POPS,A,ARCH,SINGLE}; else window.LanePops={POPS,A,ARCH,SINGLE};
+
+</script>
+<script>
+(()=>{
+const {Sim,PKEYS,L,M,DT}=LaneSim; const {ARCH}=LanePops; const MPH=2.237;
+const OBS={"waitEarly":554.6,"waitCut":148.2,"cutShare":0.70,"placesCut":22.2,"placesEarly":-51.9,"vOpen":1.52,"vClose":7.21};
+const MEAS=[['waitEarly','Early mergers: wait','s',100,0],['waitCut','Line cutters: wait','s',100,0],['cutShare','Line cutters: share','%',0.2,2],['placesCut','Line cutters: places gained','',10,1],['placesEarly','Early mergers: places gained','',10,1],['vOpen','Open lane speed','mph',2,1],['vClose','Closing lane speed','mph',2,1]];
+const MECH=[
+ ['merge','Merge pressure',"A merge urge that is always there (base), one that grows near the cones (distSens) over a distance that is the driver's idea of 'close' (dScale).",['base','distSens','dScale'],true,false],
+ ['zip','Speed beside the open lane',"How much faster than the car next to them a driver will run in the closing lane. 0 holds position beside it; 1 ignores it.",['zip'],true,false],
+ ['gap','Gap acceptance',"How big a gap has to be before the driver will take it. Low values squeeze in.",['gapAccept'],true,false],
+ ['yield','Yielding',"The chance an open-lane driver opens a gap for someone signalling in.",['yield'],true,false],
+ ['pStay','Lane presence',"The chance a driver is still in the closing lane when they reach this stretch of the jam.",['pStay'],true,false],
+ ['queue','Give-up when boxed in',"Extra merge urge per slow car queued ahead. A merge triggered this way is a give-up: the driver drops back to let a gap open.",['queueSens'],true,false],
+ ['reengage','Re-engage when the lane clears',"A driver who meant to merge forgets about it if the lane ahead opens up again.",[],false,true],
+ ['horizon','Individual noticing distance',"Drivers differ in how far out they notice the closure. Off: everyone notices at the same point.",['horizon'],false,true],
+ ['laneSense','Shorter-lane choice',"On entry, some drivers pick whichever lane is shorter instead of following their type.",['laneSense'],false,true],
+ ['norm','Social contagion',"An open-lane driver who watches cutters stream past may jump into the closing lane and become one. Hazard per passing cutter.",['normSens'],false,true],
+ ['gadget','Pace-matching gadget',"A separate rule some drivers carry: hold pace with the open lane no matter what. Redundant with zip = 0, which is the point: does a second dial earn its keep?",['gadget'],false,true],
+ ['indiv','Personal car-following',"Drivers differ in headway and standstill gap. Off: everyone follows identically.",[],false,true]];
+const RANGE={base:[0,0.5,0.01],distSens:[0,5,0.1],dScale:[3,120,1],queueSens:[0,0.5,0.01],zip:[0,1,0.01],gapAccept:[0.3,1.5,0.05],yield:[0,1,0.05],horizon:[50,260,5],pStay:[0,1,0.05],laneSense:[0,1,0.05],normSens:[0,0.3,0.01],gadget:[0,1,0.05]};
+const TYPES=[['earlyMerger','Early merger','--car-open'],['lineCutter','Line cutter','--zone'],['paceHolder','Pace holder','--you'],['blocker','Gatekeeper','--gate']];
+const DEFMIX={earlyMerger:0.6,lineCutter:0.4,paceHolder:0,blocker:0};
+function defaults(){const arch={};for(const [k] of TYPES){arch[k]={};for(const p of PKEYS)arch[k][p]=[...(ARCH[k].params[p]||[0,0])];arch[k].normSens=[0,0];arch[k].gadget=[0,0];}
+  arch.earlyMerger.normSens=[0.05,0.02];arch.lineCutter.gadget=[0,0];
+  const mech={};for(const m of MECH)mech[m[0]]=m[4];return {arch,mix:{...DEFMIX},mech};}
+let state=defaults();
+// --- UI: mechanisms ---
+const mechEl=document.getElementById('mechs');
+function buildMechs(){mechEl.innerHTML=MECH.map(m=>`<label class="mech ${m[5]?'extra':''}"><input type="checkbox" id="m-${m[0]}" ${state.mech[m[0]]?'checked':''}><span><b>${m[1]}</b> <span class="tag">${m[3].join(' · ')||'rule'}</span></span><span class="d">${m[2]}</span></label>`).join('');
+  mechEl.querySelectorAll('input').forEach(i=>i.addEventListener('change',()=>{state.mech[i.id.slice(2)]=i.checked;refreshRows();}));}
+// --- UI: slider table ---
+const tbl=document.getElementById('ptable');
+function fmt(v,p){return RANGE[p]&&RANGE[p][2]>=1?Math.round(v):(+v).toFixed(2);}
+function buildTable(){let h='<thead><tr><th>Process</th>'+TYPES.map(([k,n,c])=>`<th><i class="chip" style="background:var(${c});display:inline-block;width:14px;height:8px;border-radius:2px;margin-right:6px"></i>${n}</th>`).join('')+'</tr></thead><tbody>';
+  h+='<tr class="mix"><td>Share of population</td>'+TYPES.map(([k])=>`<td><div class="sl"><input type="range" id="mix-${k}" min="0" max="1" step="0.05" value="${state.mix[k]}"><output>${state.mix[k].toFixed(2)}</output></div></td>`).join('')+'</tr>';
+  for(const p of Object.keys(RANGE)){const [lo,hi,st]=RANGE[p];const mech=MECH.find(m=>m[3].includes(p));
+    h+=`<tr data-p="${p}" data-m="${mech?mech[0]:''}"><td><span style="font-family:var(--f-mono)">${p}</span></td>`+TYPES.map(([k])=>`<td><div class="sl"><input type="range" id="p-${k}-${p}" min="${lo}" max="${hi}" step="${st}" value="${state.arch[k][p][0]}"><output>${fmt(state.arch[k][p][0],p)}</output></div></td>`).join('')+'</tr>';}
+  tbl.innerHTML=h+'</tbody>';
+  tbl.querySelectorAll('input[type=range]').forEach(i=>i.addEventListener('input',()=>{i.nextElementSibling.textContent=i.id.startsWith('mix')?(+i.value).toFixed(2):fmt(i.value,i.id.split('-')[2]);}));
+  refreshRows();}
+function refreshRows(){tbl.querySelectorAll('tr[data-p]').forEach(tr=>{const m=tr.dataset.m;tr.classList.toggle('off',m&&!state.mech[m]);});}
+function readUI(){for(const [k] of TYPES){state.mix[k]=+document.getElementById('mix-'+k).value;for(const p of Object.keys(RANGE))state.arch[k][p][0]=+document.getElementById(`p-${k}-${p}`).value;}}
+function population(){const pop=[];for(const [k,name] of TYPES){const w=state.mix[k];if(w>0)pop.push({name,weight:w,params:state.arch[k]});}return pop.length?pop:[{name:'Early merger',weight:1,params:state.arch.earlyMerger}];}
+function mechCount(){return MECH.filter(m=>state.mech[m[0]]).length;}
+function typeCount(){return TYPES.filter(([k])=>state.mix[k]>0).length;}
+buildMechs();buildTable();
+// --- sim ---
+let sim,warmLeft;const canvas=document.getElementById('road'),ctx=canvas.getContext('2d'),scv=document.getElementById('scatter');const P={w:0,h:0,s:1,lh:24,y0:20};
+function restart(){readUI();sim=new Sim(population(),23,{lambda:1.15,vzone:2.2,v0:15,qcap:3,mech:{...state.mech}});warmLeft=Math.round(600/DT);stamp=null;}
+let stamp=null;
+restart();
+document.getElementById('apply').addEventListener('click',restart);
+document.getElementById('resetp').addEventListener('click',()=>{state=defaults();buildMechs();buildTable();restart();});
+function resize(){const dpr=window.devicePixelRatio||1;const w=canvas.getBoundingClientRect().width;if(!w)return;P.s=w/L;P.lh=Math.round(Math.max(16,Math.min(28,P.s*4.6)));P.y0=20;const h=P.y0+2*P.lh+30;if(canvas.style.height!==h+'px')canvas.style.height=h+'px';P.w=w;P.h=h;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);}
+new ResizeObserver(resize).observe(document.querySelector('.wrap'));resize();
+function rr(c,x,y,w,h,r){r=Math.min(r,w/2,h/2);c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function colors(){const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim();return {shoulder:g('--shoulder'),asphalt:g('--asphalt'),closed:g('--asphalt-closed'),stripe:g('--stripe'),zone:g('--zone'),you:g('--you'),carOpen:g('--car-open'),ink:g('--ink'),muted:g('--muted'),rule:g('--rule'),gate:g('--gate'),obs:g('--obs'),'Early merger':g('--car-open'),'Line cutter':g('--zone'),'Pace holder':g('--you'),'Gatekeeper':g('--gate'),'Zipper':g('--car-open')};}
+const classOf=c=>c.cls||(c.gaveUp?'Early merger':c.d.arch);
+function drawVeh(c,s,lh,cy,body){const len=c.len*s,x1=(c.x-c.len)*s,w=Math.min(lh*0.68,Math.max(5,c.w*s*1.2));const dark='rgba(0,0,0,.38)',light='rgba(255,255,255,.28)';
+  if(c.veh==='semi'||c.veh==='box'){const cab=(c.veh==='semi'?3.4:2.6)*s,gap=Math.max(1,0.5*s),tl=len-cab-gap;ctx.fillStyle=body;rr(ctx,x1,cy-w/2,tl,w,1.5);ctx.fill();ctx.fillStyle=light;rr(ctx,x1,cy-w/2,tl,w,1.5);ctx.fill();ctx.fillStyle=body;rr(ctx,x1+tl+gap,cy-w*0.43,cab,w*0.86,Math.max(1.5,w*0.2));ctx.fill();ctx.fillStyle=dark;ctx.fillRect(x1+tl+gap+cab*0.6,cy-w*0.33,Math.max(1.2,cab*0.18),w*0.66);}
+  else{ctx.fillStyle=body;rr(ctx,x1,cy-w/2,len,w,Math.max(1.5,w*0.32));ctx.fill();ctx.fillStyle=dark;ctx.fillRect(x1+len*0.64,cy-w*0.34,Math.max(1.2,len*0.11),w*0.68);ctx.fillRect(x1+len*0.16,cy-w*0.3,Math.max(1,len*0.08),w*0.6);}}
+function draw(col){const {w,h,s,lh,y0}=P;if(!w)return;const Mx=M*s;
+  ctx.fillStyle=col.shoulder;ctx.fillRect(0,0,w,h);ctx.fillStyle=col.asphalt;ctx.fillRect(0,y0,w,lh);ctx.fillRect(0,y0+lh,Mx,lh);ctx.fillStyle=col.closed;ctx.fillRect(Mx,y0+lh,w-Mx,lh);
+  ctx.save();ctx.beginPath();ctx.rect(Mx,y0+lh,w-Mx,lh);ctx.clip();ctx.strokeStyle=col.zone;ctx.globalAlpha=.35;ctx.lineWidth=2;for(let x=Mx-lh;x<w;x+=10){ctx.beginPath();ctx.moveTo(x,y0+2*lh);ctx.lineTo(x+lh,y0+lh);ctx.stroke();}ctx.restore();
+  ctx.strokeStyle=col.stripe;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,y0+1);ctx.lineTo(w,y0+1);ctx.moveTo(0,y0+2*lh-1);ctx.lineTo(Mx,y0+2*lh-1);ctx.stroke();ctx.beginPath();ctx.moveTo(Mx,y0+lh);ctx.lineTo(w,y0+lh);ctx.stroke();
+  ctx.setLineDash([3*s,6*s]);ctx.beginPath();ctx.moveTo(0,y0+lh);ctx.lineTo(Mx,y0+lh);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=col.zone;const cone=(x,y)=>{ctx.beginPath();ctx.moveTo(x,y-4);ctx.lineTo(x+3.5,y+3);ctx.lineTo(x-3.5,y+3);ctx.closePath();ctx.fill();};for(let i=0;i<=4;i++)cone(Mx+3+i*4,y0+2*lh-5-i*(lh-8)/4);for(let x=Mx+28;x<w-4;x+=22)cone(x,y0+lh+5);
+  ctx.font='800 11px Overpass, system-ui, sans-serif';ctx.textAlign='left';ctx.textBaseline='alphabetic';const mph=v=>v==null?'—':Math.round(v*MPH)+' mph';const behind=l=>sim.pend[l].length+sim.cars.filter(c=>c.lane===l&&c.x<0).length;
+  ctx.fillStyle=col.muted;ctx.fillText('OPEN LANE  '+mph(sim.v0e)+(behind(0)?'  ·  '+behind(0)+' waiting behind':''),4,y0-6);
+  const fast=sim.v0e!=null&&sim.v1e!=null&&sim.v1e>sim.v0e*1.8+1;ctx.fillStyle=fast?col.zone:col.muted;ctx.textAlign='right';ctx.fillText('CLOSING LANE  '+mph(sim.v1e)+(behind(1)?'  ·  '+behind(1)+' behind':''),w-4,y0+2*lh+16);ctx.textAlign='left';
+  for(const c of sim.cars)drawVeh(c,s,lh,y0+lh*(0.5+c.y),col[classOf(c)]||col.carOpen);
+  ctx.font='700 10px Overpass, system-ui, sans-serif';ctx.textAlign='center';ctx.fillStyle=col.zone;for(const c of sim.cars)if(c.honk>0&&c.lane===1){ctx.globalAlpha=Math.min(1,c.honk*2);ctx.fillText('honk!',(c.x-c.len/2)*s,y0+2*lh+26);ctx.globalAlpha=1;}}
+function drawScatter(col){const r=scv.getBoundingClientRect();if(!r.width)return;const dpr=window.devicePixelRatio||1,W=r.width,H=r.height;if(scv.width!==Math.round(W*dpr)){scv.width=Math.round(W*dpr);scv.height=Math.round(H*dpr);}
+  const c=scv.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,W,H);let x0=-5,x1=15,y1=60;for(const q of sim.pts){x0=Math.min(x0,q.g);x1=Math.max(x1,q.g);y1=Math.max(y1,q.T);}
+  const xs=(x1-x0)>40?10:5;x0=Math.floor(x0/xs)*xs;x1=Math.ceil(x1/xs)*xs;const ys=y1>300?100:y1>150?50:20;y1=Math.ceil(y1/ys)*ys;
+  const L0=52,R0=12,T0=14,B0=40,pw=W-L0-R0,ph=H-T0-B0,X=v=>L0+(v-x0)/(x1-x0)*pw,Y=v=>T0+ph-(v/y1)*ph;
+  c.font='11px Overpass, system-ui, sans-serif';c.fillStyle=col.muted;c.strokeStyle=col.rule;c.lineWidth=1;c.textAlign='right';c.textBaseline='middle';
+  for(let v=0;v<=y1;v+=ys){const y=Math.round(Y(v))+0.5;c.beginPath();c.moveTo(L0,y);c.lineTo(L0+pw,y);c.stroke();c.fillText(v+' s',L0-6,y);}
+  c.textAlign='center';c.textBaseline='top';for(let v=Math.ceil(x0/xs)*xs;v<=x1;v+=xs){const x=Math.round(X(v))+0.5;c.beginPath();c.moveTo(x,T0);c.lineTo(x,T0+ph);c.stroke();c.fillText(v,x,T0+ph+5);}
+  c.fillText('Places gained on the way to the cones (negative = got passed)',L0+pw/2,H-15);
+  const now=sim.t;for(const q of sim.pts){c.globalAlpha=Math.max(0.25,1-(now-q.t)/900);c.fillStyle=col[q.arch]||col.carOpen;c.beginPath();c.arc(X(Math.max(x0,Math.min(x1,q.g))),Y(Math.min(y1,q.T)),2.8,0,7);c.fill();}c.globalAlpha=1;}
+// --- measures & fit ---
+function measures(){const b=sim.byArch,N=Object.values(b).reduce((x,o)=>x+o.n,0);if(!N||warmLeft>0)return null;const E=b['Early merger'],C=b['Line cutter'];
+  return {waitEarly:E?E.T/E.n:null,waitCut:C?C.T/C.n:null,cutShare:(C?C.n:0)/N,placesCut:C?C.g/C.n:null,placesEarly:E?E.g/E.n:null,vOpen:sim.v0e!=null?sim.v0e*MPH:null,vClose:sim.v1e!=null?sim.v1e*MPH:null,n:N};}
+function fitOf(m){if(!m)return null;let s=0,k=0;for(const [key,,,sc] of MEAS){const v=m[key];if(v==null)continue;s+=Math.abs(v-OBS[key])/sc;k++;}return k?s/k:null;}
+const fitbox=document.getElementById('fitbox'),scoreEl=document.getElementById('score');
+function fmtv(v,key){const [,,u,,dp]=MEAS.find(x=>x[0]===key);if(v==null)return '—';return (key==='cutShare'?Math.round(v*100):(+v).toFixed(dp))+(u?' '+u:'');}
+function updateFit(){const m=measures();let h='';for(const [key,label,u,sc] of MEAS){const o=OBS[key],v=m?m[key]:null;const mx=Math.max(Math.abs(o),Math.abs(v||0),1e-6);const wo=Math.abs(o)/mx*100,wm=v==null?0:Math.abs(v)/mx*100;const err=v==null?null:Math.abs(v-o)/sc;
+    h+=`<div class="n">${label}</div><div class="bars"><div class="bar o"><i style="width:${wo}%"></i><b>${fmtv(o,key)} observed</b></div><div class="bar m"><i style="width:${wm}%"></i><b>${fmtv(v,key)} model</b></div></div><div class="err">${err==null?'—':'err '+err.toFixed(2)}</div>`;}
+  fitbox.innerHTML=h;
+  const f=fitOf(m);const n=m?m.n:0;
+  scoreEl.innerHTML=[['Fit error',f==null?'—':f.toFixed(2),'0 = perfect · '+(n?n+' drivers measured':'filling the road…'),f==null?'':f<0.5?'good':f>1.5?'bad':''],['Mechanisms in use',mechCount(),'of '+MECH.length,''],['Driver types in use',typeCount(),'of '+TYPES.length,''],['Penalised score',f==null?'—':(f+0.15*mechCount()).toFixed(2),'fit + 0.15 per mechanism','']]
+   .map(([k,v,u,cls])=>`<div class="stat ${cls}"><span class="k">${k}</span><span class="v">${v}</span><span class="u">${u}</span></div>`).join('');}
+// --- comparison table ---
+const cmpBody=document.querySelector('#cmp tbody');let models=[];
+document.getElementById('snap').addEventListener('click',()=>{const m=measures();const f=fitOf(m);if(f==null)return;const name='Model '+String.fromCharCode(65+models.length%26);
+  models.push({name,mech:mechCount(),types:typeCount(),fit:f,pen:f+0.15*mechCount(),mechs:MECH.filter(x=>state.mech[x[0]]).map(x=>x[1]).join(', ')});renderCmp();});
+function renderCmp(){cmpBody.innerHTML=models.map((m,i)=>`<tr><td><b>${m.name}</b><br><span class="cap">${m.mechs}</span></td><td>${m.mech}</td><td>${m.types}</td><td>${m.fit.toFixed(2)}</td><td>${m.pen.toFixed(2)}</td><td><button class="btn" data-del="${i}">Remove</button></td></tr>`).join('')||'<tr><td colspan="6" class="cap">No saved models yet.</td></tr>';
+  cmpBody.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{models.splice(+b.dataset.del,1);renderCmp();}));}
+renderCmp();
+// --- loop ---
+let speed=4,last=performance.now(),acc=0,statT=0;
+document.querySelectorAll('[data-sp]').forEach(b=>b.addEventListener('click',()=>{speed=+b.dataset.sp;document.querySelectorAll('[data-sp]').forEach(o=>o.setAttribute('aria-pressed',o===b?'true':'false'));}));
+function frame(now){const dt=Math.min(0.1,(now-last)/1000);last=now;acc+=dt*speed;
+  while(warmLeft>0){sim.step(DT);warmLeft--;if(warmLeft%2000===0)break;}
+  if(warmLeft===0){warmLeft=-1;sim.pts=[];sim.byArch={};sim.honks=0;}
+  let n=0;while(acc>=DT&&n<400){if(warmLeft<=0)sim.step(DT);acc-=DT;n++;}
+  const col=colors();draw(col);statT+=dt;if(statT>0.5){statT=0;updateFit();drawScatter(col);}
+  requestAnimationFrame(frame);}
+updateFit();requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>
