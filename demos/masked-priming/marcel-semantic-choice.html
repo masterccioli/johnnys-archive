@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Masked Word Detection & Semantic Choice — Classroom Demo</title>
+<style>
+:root{color-scheme:dark;--bg:#240025;--panel:#361238;--yellow:#f7fa27;--text:#fff7fd;--muted:#d6bfd7;--line:#765478;--teal:#65d7c2}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;width:100%}
+body{background:var(--bg);color:var(--text);font:18px/1.45 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+button,select{font:inherit}button{cursor:pointer}
+button:focus-visible,select:focus-visible{outline:3px solid var(--yellow);outline-offset:4px}
+.app{min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+header{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:13px clamp(16px,3vw,42px);border-bottom:1px solid #583359}
+.brand{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.counter{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.smallbtn{background:transparent;border:1px solid var(--line);border-radius:9px;color:var(--text);padding:7px 12px;font-size:14px}.smallbtn:hover{background:#4b2450}
+main{flex:1;display:flex;align-items:center;justify-content:center;width:100%;padding:24px}
+.intro,.finished{width:min(920px,100%)}
+h1{font-size:clamp(2rem,4.6vw,3.9rem);letter-spacing:-.04em;line-height:1.1;margin:.2em 0 .35em}
+.eyebrow{color:var(--yellow);font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.13em}
+.intro p,.finished p{color:var(--muted);font-size:clamp(16px,1.8vw,20px);max-width:70ch}
+.setup{margin:25px 0 18px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.setup label{display:flex;gap:9px;align-items:center;flex-wrap:wrap;font-size:16px}
+select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:11px}
+.primary{min-height:54px;padding:14px 25px;border-radius:12px;border:0;background:var(--yellow);color:#240025;font-weight:850}.primary:hover{filter:brightness(.93)}
+.micro{font-size:14px!important;line-height:1.55;max-width:85ch!important;margin-top:18px}
+.stimulus{width:100%;min-height:65vh;display:flex;align-items:center;justify-content:center}
+.flashword{font-size:clamp(55px,10vw,135px);letter-spacing:.05em;font-weight:730;color:var(--yellow);text-align:center;line-height:1.1}
+.fixation{font-size:clamp(70px,11vw,145px);font-weight:400;color:var(--yellow);line-height:1}
+.questions{width:min(1160px,100%);display:flex;flex-direction:column;align-items:center;gap:23px}
+.questionstep{color:var(--yellow);font-size:14px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.prompt{text-align:center;font-size:clamp(21px,2.6vw,32px);font-weight:700;line-height:1.3;margin:0}
+.targetgrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,4vw,50px);width:100%}
+.target{min-height:clamp(125px,24vh,240px);padding:15px 10px;border:2px solid var(--line);background:#321034;border-radius:17px;color:var(--yellow);font-size:clamp(28px,5vw,68px);font-weight:780;overflow-wrap:anywhere;line-height:1.1}
+.target:hover{background:#4b214d;border-color:var(--yellow)}
+.target.binary{font-size:clamp(30px,4.5vw,62px)}
+.hint{color:var(--muted);font-size:14px;text-align:center;margin:0}
+.chartwrap{border:1px solid var(--line);background:var(--panel);border-radius:18px;margin:18px 0 14px;padding:20px 20px 16px;max-width:840px}
+.charttitle{font-weight:800;font-size:21px;margin:0 0 8px}.chartsub{font-size:14px!important;margin:0 0 10px;color:var(--muted)}
+.graph{width:100%;height:auto;display:block;max-height:345px}
+.graph text{font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0 22px}
+.stat{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:12px 19px;min-width:190px}
+.stat strong{display:block;color:var(--yellow);font-size:27px}.stat span{font-size:13px;color:var(--muted)}
+details{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:13px 16px;margin:20px 0;max-width:100%;overflow-x:auto}
+summary{cursor:pointer;font-weight:740}
+table{border-collapse:collapse;width:100%;font-size:14px;margin-top:12px;white-space:nowrap}
+th,td{border-top:1px solid var(--line);text-align:left;padding:8px 10px}th{color:var(--muted)}
+.pass{color:var(--teal)}.fail{color:#ffb3b3}.na{color:var(--muted)}
+.finish-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
+.foot{font-size:12px;color:#baa3bd;text-align:center;padding:13px}
+.hidden{display:none!important}
+@media(max-width:650px){main{padding:16px}.targetgrid{gap:12px}.target{min-height:155px;font-size:clamp(25px,6.5vw,44px)}.chartwrap{padding:10px}.stats{flex-direction:column}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand">Masked Semantic Choice · Classroom Demonstration</div>
+  <div class="toolbar"><span class="counter" id="counter"></span><button type="button" class="smallbtn" id="fullscreen">Fullscreen ⛶</button><button type="button" class="smallbtn hidden" id="reset">Restart</button></div>
+</header>
+<main>
+  <section id="intro" class="intro">
+    <div class="eyebrow">12 trials · 6 words + 6 nonwords</div>
+    <h1>Did you see a word?</h1>
+    <p>Look at the center of the screen. A word or letter string will flash very briefly, followed by a mask. For each trial, answer <b>two questions</b>: which visible target is more related to what flashed, and whether a real word appeared.</p>
+    <p>Even if you saw nothing clearly, make your best guess. Both questions use one click each, then the next trial starts automatically.</p>
+    <div class="setup">
+      <label for="duration">Prime exposure <select id="duration">
+        <option value="17">17 ms (~1 frame)</option><option value="33" selected>33 ms (~2 frames)</option><option value="50">50 ms</option><option value="67">67 ms</option><option value="100">100 ms</option><option value="150">150 ms</option>
+      </select></label>
+      <button class="primary" type="button" id="start">Start demonstration →</button>
+    </div>
+    <p class="micro">Keys: <b>A</b> or <b>←</b> for the left answer, <b>L</b> or <b>→</b> for the right answer. You can also click either answer. Prime exposure is approximate and depends on your monitor, browser and projector.</p>
+    <p class="micro"><b>Teaching note:</b> The six original semantic pairs have been retained. Six pseudoword trials provide word-presence controls. Forced semantic choices on pseudoword trials are recorded but not scored, because a nonword has no intended semantic associate.</p>
+  </section>
+
+  <section id="stimulus" class="stimulus hidden" aria-live="off"><div id="flashtext" class="flashword"></div></section>
+
+  <section id="questions" class="questions hidden">
+    <div class="questionstep" id="questionstep"></div>
+    <h2 class="prompt" id="prompt"></h2>
+    <div class="targetgrid"><button class="target" id="leftTarget" type="button"></button><button class="target" id="rightTarget" type="button"></button></div>
+    <p class="hint" id="hint"></p>
+  </section>
+
+  <section id="finished" class="finished hidden">
+    <div class="eyebrow">All 12 trials complete</div>
+    <h1>What did we detect?</h1>
+    <p>Compare accuracy on detecting whether a real word was flashed with accuracy on choosing the semantically related target.</p>
+    <div class="chartwrap">
+      <h2 class="charttitle">Accuracy by judgment</h2>
+      <p class="chartsub">Both tasks have a 50% guessing baseline. Bars show this run's observed accuracy.</p>
+      <svg class="graph" id="graph" viewBox="0 0 760 330" role="img" aria-label="Bar chart comparing word detection accuracy on 12 trials with semantic-choice accuracy on six real-word trials">
+        <line x1="96" y1="32" x2="96" y2="263" stroke="#ad8daf" stroke-width="2"/>
+        <line x1="96" y1="263" x2="716" y2="263" stroke="#ad8daf" stroke-width="2"/>
+        <g fill="#d6bfd7" font-size="15" text-anchor="end">
+          <text x="83" y="269">0%</text><text x="83" y="213">25%</text><text x="83" y="155">50%</text><text x="83" y="98">75%</text><text x="83" y="39">100%</text>
+        </g>
+        <line x1="96" y1="147.5" x2="716" y2="147.5" stroke="#c6aec8" stroke-width="2" stroke-dasharray="7 7"/><text x="708" y="138" text-anchor="end" fill="#d6bfd7" font-size="14">Chance = 50%</text>
+        <rect id="wordBar" x="195" y="263" width="150" height="0" rx="5" fill="#f7fa27"/>
+        <rect id="semanticBar" x="461" y="263" width="150" height="0" rx="5" fill="#65d7c2"/>
+        <text id="wordPct" x="270" y="249" fill="#f7fa27" font-size="29" font-weight="800" text-anchor="middle">—</text>
+        <text id="semanticPct" x="536" y="249" fill="#65d7c2" font-size="29" font-weight="800" text-anchor="middle">—</text>
+        <text x="270" y="293" text-anchor="middle" fill="#fff7fd" font-size="17" font-weight="650">Word / nonword</text><text x="270" y="316" text-anchor="middle" fill="#d6bfd7" font-size="15">detection (12 trials)</text>
+        <text x="536" y="293" text-anchor="middle" fill="#fff7fd" font-size="17" font-weight="650">Semantic choice</text><text x="536" y="316" text-anchor="middle" fill="#d6bfd7" font-size="15">(6 word trials)</text>
+      </svg>
+    </div>
+    <div class="stats">
+      <div class="stat"><strong id="detectScore">0/12</strong><span>Correct real-word vs nonword judgments</span></div>
+      <div class="stat"><strong id="semanticScore">0/6</strong><span>Correct related-word choices on word trials</span></div>
+    </div>
+    <details><summary>Show every prime, answer, and response</summary>
+      <table><thead><tr><th>Trial</th><th>Prime</th><th>Type</th><th>Targets</th><th>Semantic choice</th><th>Semantic correct?</th><th>Word reported?</th><th>Detection correct?</th></tr></thead><tbody id="answers"></tbody></table>
+    </details>
+    <div class="finish-actions"><button class="primary" id="again" type="button">Run again →</button><button class="smallbtn" id="csv" type="button">Export answers (CSV)</button></div>
+    <p class="micro"><b>Interpretation:</b> Semantic choices on nonword trials are deliberately excluded from semantic accuracy. A difference between the two bars does <em>not</em> by itself demonstrate unconscious semantic processing: word/nonword detection is not equivalent to identifying the prime, and a rigorous experiment would independently establish prime visibility with controlled timing.</p>
+  </section>
+</main>
+<footer class="foot" id="footer">Inspired by Marcel (1983). Classroom adaptation, not an experimentally validated replication.</footer>
+</div>
+<script>
+(()=>{
+'use strict';
+// These are the six original left / center / right combinations, unchanged.
+const words=[
+  {left:'PIPES', prime:'HORSE', right:'SADDLE', correct:'right'},
+  {left:'MONEY', prime:'PENNY', right:'FLOWER', correct:'left'},
+  {left:'RACKET',prime:'PLUMBER',right:'PIPES', correct:'right'},
+  {left:'FLOWER',prime:'GARDEN',right:'DREAM',correct:'left'},
+  {left:'DREAM',prime:'SLEEP',right:'MONEY',correct:'left'},
+  {left:'SADDLE',prime:'TENNIS',right:'RACKET',correct:'right'}
+].map(t=>({...t,isWord:true}));
+// Six pronounceable nonword primes, with semantically neutral alternative pairs.
+// Neither target is deemed semantically correct for a nonword prime.
+const nonwords=[
+  {prime:'VORPEL',left:'CHAIR',right:'RIVER'},
+  {prime:'NELPIC',left:'APPLE',right:'WINDOW'},
+  {prime:'DRELMO',left:'CLOUD',right:'BOTTLE'},
+  {prime:'TAVRIN',left:'TRAIN',right:'FOREST'},
+  {prime:'MORVET',left:'CAT',right:'CLOCK'},
+  {prime:'FELNUP',left:'BOOK',right:'OCEAN'}
+].map(t=>({...t,isWord:false,correct:null}));
+// Alternating original and nonword trials; avoids long blocks of one trial type.
+const trials=words.flatMap((t,i)=>i%2===0?[t,nonwords[i]]:[nonwords[i],t]);
+const $=id=>document.getElementById(id);
+let stage='intro',index=0,token=0,responses=[],current={semantic:null,detected:null};
+function show(id){for(const section of ['intro','stimulus','questions','finished'])$(section).classList.toggle('hidden',section!==id);}
+function switchTo(s){stage=s;show(s==='running'||s==='paused'?'stimulus':s==='semantic'||s==='detect'?'questions':s==='done'?'finished':'intro');$('counter').textContent=(s==='intro'||s==='done')?'':`Trial ${index+1} of ${trials.length}`;}
+function displayWord(word,fix=false){$('flashtext').className=fix?'fixation':'flashword';$('flashtext').textContent=word;}
+// Time is quantized to requestAnimationFrame refreshes, and may differ on projectors.
+function waitFrames(ms,localToken){return new Promise(resolve=>{let start=null;function frame(t){if(localToken!==token||document.hidden){resolve(false);return;}if(start===null)start=t;if(t-start>=ms){resolve(true);return;}requestAnimationFrame(frame);}requestAnimationFrame(frame);});}
+async function runTrial(){
+  if(index>=trials.length){finish();return;}
+  const localToken=++token;current={semantic:null,detected:null};switchTo('running');
+  displayWord('+',true);if(!await waitFrames(750,localToken))return;
+  displayWord('########');if(!await waitFrames(180,localToken))return;
+  displayWord(trials[index].prime);if(!await waitFrames(Number($('duration').value),localToken))return;
+  displayWord('########');if(!await waitFrames(250,localToken))return;
+  askSemantic();
+}
+function askSemantic(){
+  switchTo('semantic');$('questionstep').textContent='Question 1 of 2 · Meaning';
+  $('prompt').textContent='Which choice is more closely related to what flashed?';
+  $('leftTarget').textContent=trials[index].left;$('rightTarget').textContent=trials[index].right;
+  $('leftTarget').classList.remove('binary');$('rightTarget').classList.remove('binary');
+  $('hint').textContent='Make your best guess even if you did not consciously see a word · A / L or ← / →';
+}
+function askDetection(){
+  switchTo('detect');$('questionstep').textContent='Question 2 of 2 · Detection';
+  $('prompt').textContent='Was the flashed item a real word?';
+  $('leftTarget').textContent='YES — word';$('rightTarget').textContent='NO — nonword';
+  $('leftTarget').classList.add('binary');$('rightTarget').classList.add('binary');
+  $('hint').textContent='Click your answer to begin the next trial · A / L or ← / →';
+}
+function choose(side){
+  if(stage==='semantic'){current.semantic=side;askDetection();return;}
+  if(stage==='detect'){
+    current.detected=side==='left';
+    responses.push({...current});index++;
+    if(index>=trials.length)finish();else runTrial();
+  }
+}
+function safeText(parent,value,className){const td=document.createElement('td');td.textContent=String(value);if(className)td.className=className;parent.appendChild(td);}
+function finish(){
+  token++;switchTo('done');$('reset').classList.add('hidden');
+  let detectCorrect=0,semanticCorrect=0;
+  $('answers').replaceChildren();
+  trials.forEach((t,i)=>{
+    const r=responses[i], dc=r.detected===t.isWord, sc=t.isWord?r.semantic===t.correct:null;
+    if(dc)detectCorrect++;if(sc===true)semanticCorrect++;
+    const tr=document.createElement('tr');
+    safeText(tr,i+1);safeText(tr,t.prime);safeText(tr,t.isWord?'Word':'Nonword');safeText(tr,`${t.left} / ${t.right}`);
+    safeText(tr,r.semantic==='left'?t.left:t.right);
+    safeText(tr,sc===null?'Not scored':sc?'Yes':'No',sc===null?'na':sc?'pass':'fail');
+    safeText(tr,r.detected?'Yes':'No');safeText(tr,dc?'Yes':'No',dc?'pass':'fail');
+    $('answers').appendChild(tr);
+  });
+  $('detectScore').textContent=`${detectCorrect}/${trials.length}`;
+  $('semanticScore').textContent=`${semanticCorrect}/${words.length}`;
+  paintBar('wordBar','wordPct',100*detectCorrect/trials.length);
+  paintBar('semanticBar','semanticPct',100*semanticCorrect/words.length);
+}
+function paintBar(barId,labelId,pct){
+  const bottom=263,height=231*pct/100;
+  $(barId).setAttribute('y',String(bottom-height));$(barId).setAttribute('height',String(height));
+  const text=$(labelId);text.textContent=`${Math.round(pct)}%`;
+  text.setAttribute('y',String(Math.max(28,bottom-height-12)));
+}
+function start(){token++;index=0;responses=[];current={semantic:null,detected:null};$('reset').classList.remove('hidden');$('answers').replaceChildren();runTrial();}
+function reset(){token++;index=0;responses=[];switchTo('intro');$('reset').classList.add('hidden');}
+function exportCSV(){
+  if(stage!=='done')return;
+  const head=['trial','prime','type','left_target','right_target','semantic_response','semantic_correct','reported_word','detection_correct'];
+  const lines=[head];
+  trials.forEach((t,i)=>{const r=responses[i];lines.push([i+1,t.prime,t.isWord?'word':'nonword',t.left,t.right,r.semantic==='left'?t.left:t.right,t.isWord?String(r.semantic===t.correct):'not scored',String(r.detected),String(r.detected===t.isWord)]);});
+  const csv=lines.map(row=>row.map(x=>'"'+String(x).replaceAll('"','""')+'"').join(',')).join('\r\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  const a=document.createElement('a');a.href=url;a.download='masked-semantic-classroom-results.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+$('start').addEventListener('click',start);$('again').addEventListener('click',start);$('reset').addEventListener('click',reset);
+$('leftTarget').addEventListener('click',()=>choose('left'));$('rightTarget').addEventListener('click',()=>choose('right'));
+$('csv').addEventListener('click',exportCSV);
+$('fullscreen').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();});
+document.addEventListener('fullscreenchange',()=>{$('fullscreen').textContent=document.fullscreenElement?'Exit fullscreen':'Fullscreen ⛶';});
+document.addEventListener('keydown',e=>{
+  if((stage==='semantic'||stage==='detect')&&!e.repeat){
+    if(e.key.toLowerCase()==='a'||e.code==='ArrowLeft'){e.preventDefault();choose('left');}
+    else if(e.key.toLowerCase()==='l'||e.code==='ArrowRight'){e.preventDefault();choose('right');}
+  }else if(stage==='intro'&&e.code==='Space'&&document.activeElement.tagName!=='SELECT'){e.preventDefault();start();}
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&stage==='running'){token++;displayWord('PAUSED');switchTo('paused');}});
+$('stimulus').addEventListener('click',()=>{if(stage==='paused')runTrial();});
+})();
+</script>
+</body>
+</html>
